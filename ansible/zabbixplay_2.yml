@@ -1,0 +1,72 @@
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - set_fact: app_type=M1
+  - set_fact: client=Kroger
+  - set_fact: zabbix_url='https://stagezabbix.lcgosc.com/zabbix'
+  - set_fact: zabbix_username='zabbix_api'
+  - set_fact: zabbix_password='wV4q9pP552R76wbKA647KJG6'
+  - set_fact: env_type=PRD
+
+  - name: "Set Zabbix URL for Production -- tags: zabbix-add-hostgroup"
+    set_fact: 
+      zabbix_url: 'https://zabbix.lcgosc.com/zabbix'
+    when: env_type | match('PRD|DMZ|INT')
+    tags: 
+      - zabbix-setup
+      - zabbix-add-hostgroup
+  
+  - name: "Set Zabbix URL Stage and Development -- tags: zabbix-add-hostgroup"
+    set_fact: 
+      zabbix_url: 'https://stagezabbix.lcgosc.com/zabbix'
+    when: env_type | match('STG')
+    tags: 
+      - zabbix-setup
+      - zabbix-add-hostgroup
+  
+  - name: "Determine if the zabbix-api is installed - tags: zabbix-add-hostgroup"
+    shell: pip list --format=columns | grep -e "zabbix-api" | wc -l
+    register: zabbix_api
+    ignore_errors: yes
+    check_mode: no
+    change_when: no
+    tags:
+      - zabbix-setup
+      - zabbix-add-hostgroup
+#  
+#  - name: "Installing Zabbix API Python module required for Ansible -- tags: zabbix-add-hostgroup"
+#    pip:
+#      name: zabbix-api
+#    when: zabbix_api.stdout | match('0')
+#    tags: 
+#      - zabbix-setup
+#      - zabbix-add-hostgroup
+#  
+#  - name: "Creating Zabbix host group -- tags: zabbix-add-hostgroup"
+#    zabbix_group:
+#      server_url: "{{ zabbix_url }}"
+#      login_user: "{{ zabbix_username }}"
+#      login_password: "{{ zabbix_password }}"
+#      state: present
+#      host_groups: "{{ app_type }} - {{ client }}"
+#    when: not (env_type | match('DEV')) 
+#    tags:
+#      - zabbix-setup
+#      - zabbix-add-hostgroup
+  
+  - name: "Setting a maintenenace window to prevent alerts in production -- tags: zabbix-add-hostgroup"
+    zabbix_maintenance:
+      name: "Initial Zabbix set up for {{ client }}"
+      host_groups:
+        - "{{ app_type }} - {{ client }}"
+      collect_data: true
+      minutes: 30240
+      server_url: "{{ zabbix_url }}"
+      login_user: "{{ zabbix_username }}"
+      login_password: "{{ zabbix_password }}"
+      state: present
+    when: env_type | match('PRD')
+    tags:
+      - zabbix-setup
+      - zabbix-add-hostgroup

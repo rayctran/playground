@@ -1,0 +1,27 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+# Get master binlog file name and binlog position
+- name: Get binlog info Master
+  mysql_replication:
+    mode: getmaster
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  register: mysql_master_primary
+  when: replication_role | match("primary")
+  tags:
+    - mysql-replication
+  
+# Get master binlog file name and binlog position
+- name: Get binlog info Slave
+  mysql_replication:
+    mode: getmaster
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  register: mysql_master_secondary
+  when: replication_role | match("secondary")
+
+
+- debug:
+    msg: "{{ mysql_master_primary }}"

@@ -1,0 +1,63 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: localhost
+  gather_facts: no
+#  become: no
+#  become_user: root
+#  remote_user: osc
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+#  - set_fact: client_code=ARM
+  - set_fact: client_code=STR
+
+  - name: Determine if variable file exists
+    stat:
+      path: "/home/rtran/{{ client_code }}_mysql_config.yml"
+    register: var_file
+#    run_once: true
+#    delegate_to: localhost
+
+  - debug:
+      msg: "file doesn't exists"
+#    run_once: true
+    when: var_file.stat.exists == False
+   
+  - name: Creating root password for the production
+    command: "/usr/bin/pwgen -C -n 18 1"
+    register: tmp_prd_root_password
+#    run_once: true
+#    delegate_to: localhost
+#    when: var_file.stat.exists == False
+  
+  - name: Creating root password for the stage
+    command: "/usr/bin/pwgen -C -n 18 1"
+    register: tmp_devstg_root_password
+#    run_once: true
+#    delegate_to: localhost
+    when: var_file.stat.exists == False
+
+  - name: Creating the variable file
+    template: 
+      src: ./mysql_config.yml.j2
+      dest: "/home/rtran/{{ client_code }}_mysql_config.yml"
+    when: var_file.stat.exists == False
+
+  - name: Get the variables from an existing file
+    include_vars: "/home/rtran/{{ client_code }}_mysql_config.yml"
+#    delegate_to: localhost
+#    run_once: true
+
+  - debug:
+      msg: "my production password is {{ prd_root_password }}"
+#    run_once: true
+
+  - debug:
+      msg: "my stage password is {{ devstg_root_password }}"
+#    run_once: true

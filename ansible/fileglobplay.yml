@@ -1,0 +1,22 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: localhost
+  gather_facts: yes
+#  become: no
+#  become_user: root
+#  remote_user: osc
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+  - name: "removing ldb files only"
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_fileglob:
+      - "/home/rtran/testes/*ldb"

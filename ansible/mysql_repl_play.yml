@@ -1,0 +1,73 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: DB
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+  
+  - name: Set Password
+    set_fact: mysql_root_password=Rfvbgt345
+    when: env_type | match ("PRD")
+
+  - name: Set Password
+    set_fact: mysql_root_password=qazxcde1231
+    when: env_type | match ("STG")
+
+  - name: Check to see if replication is set up first
+    mysql_replication:
+      mode: getslave
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+    ignore_errors: true
+    register: slave_status
+
+#  - debug:
+#      msg: "{{ slave_status }}"
+
+  - debug:
+      msg: "Replication is not set up on {{ ansible_hostname }}"
+    when: not slave_status.Is_Slave
+
+  - debug:
+      msg: "Replication is set up on {{ ansible_hostname }}"
+    when: slave_status.Is_Slave
+#  - debug:
+#      msg: "Replication is set up. Done"
+#    when: slave_status.Is_Slave is defined and not slave_status.Is_Slave
+
+
+# Get master binlog file name and binlog position
+#  - name: Get binlog info Master {{ repl_primary }}
+#    mysql_replication:
+#      mode: getmaster
+#      login_user: root
+#      login_password: "{{ mysql_root_password }}"
+#    register: mysql_master_primary
+#    delegate_to: "{{ repl_primary }}"
+#    tags:
+#      - mysql-replication
+#    when:  replication_role | match ("secondary")
+#
+#  - name: Get binlog info Secondary {{ repl_secondary }}
+#    mysql_replication:
+#      mode: getmaster
+#      login_user: root
+#      login_password: "{{ mysql_root_password }}"
+#    register: mysql_master_secondary
+#    delegate_to: "{{ repl_secondary }}"
+#    tags:
+#      - mysql-replication
+#    when:  replication_role | match ("primary")
+#
+#  - debug:
+#      msg: "{{ mysql_master_primary }}"
+#
+#  - debug:
+#      msg: "{{ mysql_master_secondary }}"

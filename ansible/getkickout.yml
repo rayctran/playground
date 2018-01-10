@@ -1,0 +1,63 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: DB
+  gather_facts: no
+#  become: no
+#  become_user: root
+#  remote_user: osc
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+
+  - name: Checking to see if this is a Physical server
+    command: "dmidecode -s system-product-name"
+    register: platform
+
+  - debug:
+      msg: "my platform is {{ platform.stdout }}"
+
+  - debug:
+      msg: "VM system"
+    when: platform.stdout == 'VMware Virtual Platform'
+
+  - debug:
+      msg: "PowerEdge system"
+    when: platform.stdout | match("PowerEdge*")
+
+  - name: Check mount point /data
+    command: mountpoint /data
+    register: mount_stat
+    failed_when: False
+    changed_when: False
+  
+#  - name: "debug"
+#    when: mount_stat.stdout == "/data is a mountpoint"
+#    debug:
+#      msg: "/data is a mountpoint"
+  
+#  - name: "debug"
+#    when: mount_stat.stdout == "/data is not a mountpoint"
+#    debug:
+#      msg: "/data is not a mountpoint"
+
+  - debug:
+      msg: "VMWARE - end_play here"
+    when: platform.stdout | match("VMware*")
+
+  - name: I'm out of here because I'm a VM 
+    meta: end_play
+    when: platform.stdout | match("VMware*")
+
+  - debug:
+      msg: "Not VMWARE"
+    when: not(platform.stdout | match("VMware*"))
+
+  - debug:
+      msg: "Not PowerEdge"
+    when: not(platform.stdout | match("PowerEdge*"))

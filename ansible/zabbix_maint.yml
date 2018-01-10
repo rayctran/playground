@@ -1,0 +1,59 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - set_fact: app_type=M1
+  - set_fact: client=Kroger
+  - set_fact: zabbix_url='https://stagezabbix.lcgosc.com/zabbix'
+  - set_fact: zabbix_username='zabbix_api'
+  - set_fact: zabbix_password='wV4q9pP552R76wbKA647KJG6'
+  - set_fact: env_type=DEV
+
+#  - name: "Setting a maintenenace window to prevent alerts -- tags: zabbix-add-hostgroup"
+#    local_action:
+#      module: zabbix_maintenance
+#      name: "Initial Zabbix set up for {{ client }}"
+#      host_groups:
+#        - "{{ app_type }} - {{ client }}"
+#      collect_data: true
+#      minutes: 30240
+#      server_url: "{{ zabbix_url }}"
+#      login_user: "{{ zabbix_username }}"
+#      login_password: "{{ zabbix_password }}"
+#      state: present
+
+
+  - name: "Determine if the zabbix-api is installed - tags: zabbix-add-hostgroup"
+    shell: pip list --format=columns | grep -e "zabbix-api" | wc -l
+    register: zabbix_api
+    ignore_errors: yes
+    check_mode: no
+    change_when: no
+    tags:
+      - zabbix-setup
+      - zabbix-add-hostgroup
+
+  - debug:
+      msg: "{{ zabbix_api.stdout }}"
+
+  - name: "Setting a maintenenace window to prevent alerts -- tags: zabbix-add-hostgroup"
+    zabbix_maintenance:
+      name: "Initial Zabbix set up for {{ client }}"
+      host_groups:
+        - "{{ app_type }} - {{ client }}"
+      collect_data: true
+      minutes: 30240
+      server_url: "{{ zabbix_url }}"
+      login_user: "{{ zabbix_username }}"
+      login_password: "{{ zabbix_password }}"
+      state: present
+    when: not (env_type | match('DEV'))
+
+#    when: env_type | match('PRD|INT|STG')
+#   when: env_type | match('PRD|INT') or env_type | match('STG')
+#   when: 
+#     - env_type | match('PRD') 
+#     - env_type | match('STG')

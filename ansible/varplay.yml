@@ -1,0 +1,60 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: DB
+  gather_facts: yes
+#  become: no
+#  become_user: root
+#  remote_user: osc
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+#    -name: "Get list of web hosts"
+#     register: web_hosts
+
+#  - debug:
+#      msg: "my web server is {{ item }}"
+#    with_items:
+#      - "{{ groups['WEB'] }}"
+
+#  - name: Get list of web hosts
+#    command: "/bin/echo {{ item }}"
+#    register: web_hosts
+#    with_items:
+#      - "{{ groups['WEB'] }}"
+
+#  - debug:
+#      msg: "my item is {{ item.stdout }}"
+#    with_items:
+#      - "{{ web_hosts.results }}"
+  - debug:
+      msg: "{{ inventory_hostname }}"
+
+  - name: Running Command for VLAN
+#    shell: echo {{ inventory_hostname }} | awk -F"." '{print $3}' 
+    shell: echo {{ inventory_hostname }} | cut -d "." -f -3
+    register: vlan
+
+  - debug:
+      msg: "{{ vlan.stdout }}"
+
+#  - name: Running Command for Hostname
+#    shell: echo {{ hostvars[inventory_hostname].hostname }} | awk -F"-" '{print $3}' 
+#    register: hostname
+
+######
+#  - debug: 
+#      msg: "{{ hostvars[inventory_hostname] }}"
+#      msg: "{{ replica }}"
+#      msg: "{{ repl_p }}"
+#      msg: "Current system is {{ inventory_hostname }} in VLAN {{ vlan.stdout }}"
+#      msg: "Current system is {{ hostvars[inventory_hostname] }}"
+#      msg: "Replication  postion is {{ hostvars['inventory_item']['replica'] }}"
+#
+#  - debug: 
+#      msg: "Replication  postion is {{ hostvars['inventory_item']['replica'] }}"

@@ -1,0 +1,23 @@
+#!/usr/bin/python
+
+import sys, string, xmlrpclib, re
+
+if len(sys.argv) < 3:
+   exit("Usage: " + sys.argv[0] + " spacekey pagetitle");
+
+input = "".join(sys.stdin.readlines()).rstrip();
+spacekey = sys.argv[1];
+pagetitle = sys.argv[2];
+
+server = xmlrpclib.ServerProxy('https://www.lyonscgahdev.atlassioan.net/confluence/rpc/xmlrpc');
+token = server.confluence1.login('rayctran', 'pb4ugo2bed');
+page = server.confluence1.getPage(token, spacekey, pagetitle);
+if page is None:
+   exit("Could not find page " + spacekey + ":" + pagetitle);
+
+content = page['content'];
+pattern = re.compile('^\|\|.*\n(?!\|)', re.MULTILINE);
+content = pattern.sub('\g<0>' + input + '\n', content);
+
+page['content'] = content;
+server.confluence1.storePage(token, page);

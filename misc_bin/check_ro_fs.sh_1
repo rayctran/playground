@@ -1,0 +1,10 @@
+#!/bin/sh
+
+for host in `cat ansible_hosts`; do
+    if [ $host =~ "^#" -o $host =~ ^[ ]; then
+        echo $host
+    fi
+done
+
+
+

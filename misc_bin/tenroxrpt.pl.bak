@@ -1,0 +1,96 @@
+#!/usr/bin/perl -w
+
+use Data::Dumper;
+use Date::Manip;
+use Date::Calc qw(Week_Number);;
+use Excel::Writer::XLSX;
+use strict;
+
+my ($file, $outfile, $logfile, @resources, $current_proj, $current_resource, $outline, $project);
+my ($date, $billablehr, $nonbillablehr,$totalhr, $year,$month,$week,$day);
+
+$file = "/home/rtran/projectdetailraw.txt";
+$outfile = "/home/rtran/resourcetoprojecttime.txt";
+$logfile = "/home/rtran/bin/projectscript.log";
+@resources = ("Ray Tran", "Darius McCaskey", "Joe Whiteaker", "Robert Grizzell", "Ben Vaughan");
+
+open(FILE,"$file") or die "Can't read file $file:$!. Please try again\n";
+open(LOGFILE,">$logfile") or die "cant' open file $logfile:$!\n";
+#open(OUTFILE,">$outfile");
+my $workbook = Excel::Writer::XLSX->new( '/home/rtran/resourceprojectmap.xlsx' );
+my $worksheet = $workbook->add_worksheet( 'Data' );
+my $date_format = $workbook->add_format( num_format => 'dd/mm/yyyy' );
+my $fourno_format = $workbook->add_format( num_format => '0000' );
+my $twono_format = $workbook->add_format( num_format => '00' );
+my $row = 1;
+my $totalproj;
+my $no_of_resources;
+while (<FILE>) {
+    chomp;
+    s/#.*//;                # no comments
+    s/^\s+//;               # no leading white
+    s/\s+$//;               # no trailing white
+#    next unless length;     # anything left?
+#    next if /^\,+^Date|^Notes/;
+    next if /^,,,,,,,,,|^Date|^Notes|^Resource/;
+#    print "current line is $_\n";
+    my @fields = split ',', $_;
+    if (/^Notes:/ .. /,,,,,,,/) {
+#        print "$_\n";
+        next;
+    }
+    if ($fields[0] =~ /^Project Name:/) {
+	$resourceperproj = "";	
+        my ($var, $value) = split(/\s*:\s*/, $fields[0], 2);
+        $current_proj = $value;
+        print "Current project is $current_proj\n";
+        print LOGFILE "Current project is $current_proj\n";
+	$totalproj += 1;
+    }
+#   if ("@resources" =~ /$fields[0]/) {
+    if ( grep ( /$fields[0]/, @resources) ) {
+        $current_resource = $fields[0];
+	$resourceperproj += 1;	
+#        print "Current resource is $current_resource\n";
+#	$resourceperproj += 1;
+    }
+    if ($fields[0] =~ /^[0-9][0-9]\/[0-9][0-9]\/2016/) {
+#        print "Current date line is $current_resource,$_\n";
+	($year, $month, $day) = UnixDate($fields[0], "%Y", "%m", "%d");
+#	print "Year = $year, Month = $month, Day = $day\n";
+       	$week = Week_Number($year, $month, $day);
+       	$date = $fields[0];
+       	$project = $fields[2];
+       	$billablehr = $fields[4];
+       	$nonbillablehr = $fields[5];
+       	$totalhr = $fields[8];
+#	$outline = "$current_resource,$_,$year,$month,$week,$day\n";
+#        print $outline;
+    	$outline = "$current_resource,$date,$project,$billablehr,$nonbillablehr,$totalhr,$year,$month,$week,$day\n";
+        print $outline;
+    	print LOGFILE "outline is - $outline";
+    }
+#    print OUTFILE $outline;
+    if ($outline) {
+	$worksheet->write($row, 0, $current_resource);
+	$worksheet->write($row, 1, $date, $date_format);
+	$worksheet->write($row, 2, $project);
+	$worksheet->write($row, 3, $billablehr);
+	$worksheet->write($row, 4, $nonbillablehr);
+	$worksheet->write($row, 5, $totalhr);
+	$worksheet->write($row, 6, $year, $fourno_format);
+	$worksheet->write($row, 7, $month, $twono_format);
+	$worksheet->write($row, 8, $week, $twono_format);
+	$worksheet->write($row, 9, $day, $twono_format);
+	$outline = "";	
+	$row += 1;
+    }
+}
+
+print LOGFILE "total projects is $totalproj\n";
+#print Dumper \%Config_Setting;
+#print "$Config_Setting{hostip}\n"
+
+close (FILE);
+close (LOGFILE);
+

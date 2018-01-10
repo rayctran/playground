@@ -1,0 +1,41 @@
+- hosts: all
+  become: yes
+#  become_method: sudo
+  become_user: root
+  remote_user: osc
+  gather_facts: no
+  tasks:
+
+#  - name: Store deploy user's ssh keys locally temporary
+#    fetch:
+#      src: /home/deploy/.ssh/{{ item }}
+#      dest: /home/osc/deploy_ssh/
+#      flat: yes
+#    with_items: 
+#      - id_rsa
+#      - id_rsa.pub
+#      - authorized_keys
+
+  - name: Copy osc public key to server
+    authorized_key:
+      user: osc
+      key: "{{ lookup('file', '/home/osc/.ssh/id_rsa.pub') }}"
+      state: present
+
+#  - name: Store deploy user's ssh keys locally temporary
+#    synchronize:
+#      mode: pull
+#      src: /home/deploy/.ssh/
+#      dest: /tmp/.deploy_ssh/
+#      set_remote_user: yes
+#      rsync_path: "sudo rsync"
+#    delegate_to: localhost
+ #   become: no
+  - name: Store deploy user's ssh keys locally temporary
+    synchronize:
+      mode: pull
+      src: /home/deploy/.ssh/
+      dest: /tmp/.deploy_ssh/
+      set_remote_user: yes
+      rsync_path: "su -c rsync"
+

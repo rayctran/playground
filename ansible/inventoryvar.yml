@@ -1,0 +1,21 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+- hosts: WEB
+  gather_facts: no
+#  become: no
+#  become_user: root
+#  remote_user: osc
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+  - debug: 
+      msg: "my web server is {{ item }}"
+    with_items: 
+      - "{{ web_servers.split(',') }}"
+  - debug:
+      msg: "{{ mytest }}"

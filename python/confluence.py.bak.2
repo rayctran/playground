@@ -1,0 +1,18 @@
+#!/usr/bin/python
+
+import sys, string, xmlrpclib, re
+
+CONFLUENCE_URL = "https://lyonscg.atlassian.net/confluence/rpc/xmlrpc" 
+CONFLUENCE_LOGIN = "rtran@lyonscg.com"
+CONFLUENCE_PASSWORD = "mT7bwujk!7890"
+# get this from the page url while editing
+# e.g. ../editpage.action?pageId=132350005 <-- here
+PAGE_ID = "123209351" 
+client = xmlrpclib.Server(CONFLUENCE_URL, verbose = 1)
+auth_token = client.confluence2.login(CONFLUENCE_LOGIN, CONFLUENCE_PASSWORD)
+page = client.confluence2.getPage(auth_token, PAGE_ID)
+# and write the new contents
+#page['content'] = "!!!your content here!!!"
+page['content'] = "This is my first test"
+result = client.confluence2.storePage(auth_token, page)
+

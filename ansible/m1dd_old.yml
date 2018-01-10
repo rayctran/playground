@@ -1,0 +1,69 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+#- hosts: DB
+#  gather_facts: no
+#  become: yes
+#  become_user: root
+#  become_method: sudo
+#  remote_user: osc
+#
+#  tasks:
+# Get web servers
+#  - debug:
+#      msg: "my web server is {{ item }}"
+#    with_items:
+#      - "{{ groups['WEB'] }}"
+#  - debug: 
+#      msg: "{{ replica }}"
+
+- hosts: M1DD
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  tasks:
+  - name: Check to see if deployment dashboard site already exists
+    stat:
+      path: /etc/apache2/sites-available/capapp.conf
+    register: capapp
+  - name: Register
+    set_fact: dd_exists=yes
+    when: capapp.stat.exists == True
+  - name: Show me the money
+    debug:
+      msg: "in M1DD it is {{ dd_exists }}"
+  - name: Check to see if deploy user already exists
+    command: bash -c "/usr/bin/getent passwd deploy | wc -l"
+    register: deploy_user
+  - name: Deploy User 
+    debug:
+      msg: "{{ deploy_user.stdout }}"
+    when: deploy_user.stdout == "1"
+  - name: Create temp directory to hold data
+    file:
+      path: /tmp/m1dd_data
+      state: directory
+    delegate_to: localhost
+#  - name: Get ssh pub cred
+#    fetch:
+#      src: /home/deploy/.ssh/{{ item }}
+#      dest: m1dd_data/
+#      flat: yes
+#    with_items:
+#      - id_rsa.pub
+#      - id_rsa
+#      - authorized_keys
+#    when: deploy_user.stdout == "1"
+
+#- hosts: 127.0.0.1
+#  connection: local
+#  tasks:
+#  - name: Show me the money
+#    debug:
+#      msg: "it is {{ hostvars[groups['M1DD'][0]]['dd_exists'] }}"
+#  roles:
+#    - { role: test, when: "{{ hostvars[groups['M1DD'][0]][dd_exists] }}" == "yes" }

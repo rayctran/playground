@@ -1,0 +1,17 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+- name: Check to see if replication is set up first for PRD
+  mysql_replication:
+    mode: getslave
+    login_user: root
+    login_password: "{{ passwd }}"
+  ignore_errors: true
+  register: slave_status
+
+- debug:
+    msg: "{{ slave_status }}"
+
+- debug:
+    msg: "System is not a slave"
+  when: slave_status.Is_Slave is defined and not slave_status.Is_Slave

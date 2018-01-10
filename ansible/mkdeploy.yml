@@ -1,0 +1,47 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+- hosts: all
+  become: yes
+#  become_method: sudo
+  become_user: root
+  remote_user: osc
+  gather_facts: no
+  tasks:
+
+  - name: "Set Up deploy user"
+    user:
+      name: deploy
+      uid: 1001
+      generate_ssh_key: yes
+      ssh_key_bits: 2048
+      ssh_key_file: .ssh/id_rsa
+      state: present
+
+#  - name: Set up authorized key
+#    authorized_key:
+#      user: deploy
+#      key: "{{ lookup('file','/home/deploy/.ssh/id_rsa.pub') }}"
+
+#  - name: Set up authorized key
+#    authorized_key:
+#      user: deploy
+#      key: "{{ lookup('file','/home/rtran/.ssh/id_rsa.pub') }}"
+  - name: Set up authorized key
+    copy:
+      src: /home/deploy/.ssh/id_rsa.pub
+      dest: /home/deploy/.ssh/authorized_keys
+      remote_src: yes
+  
+  - name: "Get Deploy's Public Key"
+    shell: cat "/home/deploy/.ssh/id_rsa.pub"
+    register: id_rsa_pub
+  
+  - name: "Public Key info"
+    debug:
+       msg: "Deploy User's Public Key Is {{ id_rsa_pub.stdout}}"
+
+  - name: "Waiting for Confirmation to continue"
+    pause: prompt="Please copy the deploy's user public key and press enter to continue"
+

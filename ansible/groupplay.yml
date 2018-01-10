@@ -1,0 +1,83 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: DB
+  gather_facts: yes
+#  become: no
+#  become_user: root
+#  remote_user: osc
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+#  - set_fact:
+#      host_count: "{{ groups['WEB'] | length }}"
+
+#  - debug:
+#      msg: "there are {{ host_count }} web server" 
+#    when: host_count | match("[1-9]")
+
+#  - debug:
+#      msg: "current system {{ inventory_hostname }}"
+
+
+# this works
+#  - debug:
+#      msg: "{{ hostvars[inventory_hostname] }}"
+#    when: 
+#      - inventory_hostname not in groups['WEB']
+#      - inventory_hostname not in groups['DB']
+#      - inventory_hostname not in groups['M1DD']
+#      - inventory_hostname not in groups['HYB']
+#
+
+#  - debug:
+#      msg: "{{ hostvars[inventory_hostname] }}"
+#    when: 
+#      - inventory_hostname in groups['DB']
+#      - platform.stdout | match("VMware*")
+
+#  - name: Set fact
+#    set_fact: dome=yes
+#    when: 
+#      - inventory_hostname in groups['M1DD']
+#      - platform.stdout | match("VMware*")
+#  - debug:
+#      msg: "{{ hostvars[inventory_hostname] }}"
+
+#  - debug:
+#      msg: "{{ hostvars[inventory_hostname].ansible_hostname.split('-')[3] }}"
+#
+  - set_fact:
+      last_digit_hostname_work: |
+        {{ hostvars[inventory_hostname].ansible_hostname.split('-')[3] | map('regex_replace','^0','') | list}}
+
+  - set_fact:
+      last_digit: "{{ last_digit_hostname_work[1] }}"
+#
+#
+  - debug:
+      msg: "{{ last_digit }}"
+#
+#  - set_fact:
+#      myhostname: "{{  hostvars[inventory_hostname].ansible_hostname }}"
+##
+#  - debug:
+#      msg: "{{ myhostname }}"
+##
+  - debug:
+      msg: "my inventory_hostname is {{ inventory_hostname }}"
+
+  - name: Setting server_id from the hostname
+    shell: bash -c "echo {{  inventory_hostname }} | awk -F"-" '{print $4}' | sed s/^0//"
+    register: server_id
+
+  - debug:
+      msg: "my server_id is {{ server_id.stdout }}"
+
+  - debug:
+      msg: "The first database server is {{ groups['DB'][0] }}"
