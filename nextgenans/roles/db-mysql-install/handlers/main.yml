@@ -1,0 +1,51 @@
+---
+# db-mysql-install/handlers/main.yml
+- name: delete anonymous
+  mysql_user:
+    user: ''
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: remove datadir files
+  file:
+    path: /var/lib/mysql/
+    state: absent
+
+- name: create datadir
+  file:
+    path: /var/lib/mysql
+    state: directory
+    owner: mysql
+    group: mysql
+
+- name: remove test database
+  mysql_db:
+    db: test
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+
+- name: secure root user
+  mysql_user:
+    user: "root"
+    password: "{{ mysql_root_password }}"
+    host: "{{ item }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  with_items:
+     - 127.0.0.1
+     - localhost
+
+- name: stop mysql
+  service:
+    name: mysql
+    state: stopped
+
+- name: reload daemon
+  shell: systemctl daemon-reload
+
+- name: start mysql
+  service:
+    name: mysql
+    state: started

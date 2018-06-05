@@ -1,0 +1,15 @@
+---
+# multi-keepalived/handlers/main.yml
+- name: reload sysctl
+  command: sysctl --system
+
+- name: restart keepalived
+  service:
+    name: keepalived
+    state: restarted
+
+- name: start keepalived
+  service:
+    name: keepalived
+    state: started
+    enabled: yes

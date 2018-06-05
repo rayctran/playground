@@ -1,0 +1,14 @@
+#!/usr/bin/env ansible-playbook
+---
+# lt.yml
+
+- hosts: LT
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - lt-jmeter

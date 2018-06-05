@@ -1,0 +1,18 @@
+#!/usr/bin/env ansible-playbook
+---
+# slr.yml
+
+- hosts: SLR
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - slr-solr
+#    - slr-graylog_collector
+#    - slr-ufw
+#    - multi-zabbix_agent
+#    - slr-zabbix_agent

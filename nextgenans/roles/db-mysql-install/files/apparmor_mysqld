@@ -1,0 +1,7 @@
+# Site-specific additions and overrides for usr.sbin.mysqld.
+# For more details, please see /etc/apparmor.d/local/README.
+/data/ r,
+/data/** rwk,
+/proc/*/status r,
+/sys/devices/system/node/ r,
+/sys/devices/system/node/node*/meminfo r,

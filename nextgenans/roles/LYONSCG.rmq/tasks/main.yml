@@ -1,0 +1,61 @@
+---
+# LYONSCG.rmq/tasks/main.yml
+- name: "Installing RabbitMQ"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  with_items:
+    - rabbitmq-server
+  notify:
+    - enable rabbitmq
+
+- name: "Copying /etc/default/rabbitmq-server"
+  file:
+    src: etc_default_rabbitmq-server.txt
+    dest: /etc/default/rabbitmq-server
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart rabbitmq
+
+- name: "Generate RabbitMQ user credentials"
+  command: openssl rand -hex 7 creates=/root/.rmqcreds
+  register: rmq_password
+- debug:
+    msg: "New RabbitMQ user password is {{ rmq_password.stdout }}"
+  when: rmq_password.changed
+- debug:
+    msg: "No change to RabbitMQ user password. Check /root/.rmqcreds on the RabbitMQ server for current credentials."
+  when: not rmq_password.changed
+
+- name: "Create RabbitMQ user and set permissions"
+  rabbitmq_user:
+    user: "{{ client_code }}_{{ env_type }}_{{ app_type }}_rmquser"
+    password: "{{ rmq_password.stdout }}"
+    vhost: /
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    state: present
+    force: yes
+  when: rmq_password.changed
+
+- name: "Save user credentials to server"
+  template:
+    src: rmqcreds.j2
+    dest: /root/.rmqcreds
+    owner: root
+    group: root
+    mode: 0600
+    force: no
+
+- name: "Provide the following information to the development team:"
+  debug:
+    msg:
+    - "RabbitMQ server name: {{ ansible_hostname }}"
+    - "RabbitMQ server IP address: {{ ansible_default_ipv4.address }}"
+    - "RabbitMQ username: {{ client_code }}_{{ env_type }}_{{ app_type }}_rmquser"
+    - "RabbitMQ password: {{ rmq_password.stdout }}"

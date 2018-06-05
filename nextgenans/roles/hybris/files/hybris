@@ -1,0 +1,52 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          hybris
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      $named
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Short-Description: hybris ecommerce platform application
+# Description:       tomcat container that runs the hybris platform
+### END INIT INFO
+
+set -e
+
+export LD_LIBRARY_PATH="/usr/local/apr/lib/:/lib/x86_64-linux-gnu/:/usr/lib/x86_64-linux-gnu/:/lib64/:/usr/lib:${LD_LIBRARY_PATH}"
+
+JAVA_HOME=/usr/bin/java
+export JAVA_HOME
+PATH=$JAVA_HOME/bin:$PATH
+export PATH
+HYBRIS_ROOT="/opt/hybris/hybris"
+TOMCAT_DIR="${HYBRIS_ROOT}/bin/platform/tomcat"
+MODE=$1
+USER=hybris
+
+if [ "$MODE" = "" ] ; then
+        MODE="run"
+fi
+case $MODE in
+        "minimal" | "-m" )
+                export WRAPPER_CONF="../conf/wrapper-minimal.conf"
+                COMMAND="su $USER ./catalina.sh run"
+                ;;
+        "debug" | "-d" )
+                export WRAPPER_CONF="../conf/wrapper-debug.conf"
+                COMMAND="su $USER ./catalina.sh run"
+                ;;
+        "jprofiler" | "-j" )
+                export WRAPPER_CONF="../conf/wrapper-jprofiler.conf"
+                COMMAND="su $USER./catalina.sh run"
+                ;;
+        "version" | "-v" )
+                COMMAND="java -cp ../lib/catalina.jar org.apache.catalina.util.ServerInfo"
+                ;;
+        * )
+                COMMAND="su $USER ./catalina.sh ${MODE}"
+                ;;
+esac
+
+cd ${TOMCAT_DIR}/bin
+exec $COMMAND

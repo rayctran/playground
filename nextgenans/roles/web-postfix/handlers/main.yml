@@ -1,0 +1,6 @@
+---
+# web-postfix/handlers/main.yml
+- name: restart postifx
+  service:
+    name: postfix
+    state: restarted

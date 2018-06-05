@@ -1,0 +1,35 @@
+#!/usr/bin/env ansible-playbook
+---
+# lb.yml
+
+- hosts: LB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - lb-haproxy-install
+    - multi-lcgosc-cert
+#    - lb-haproxy-configure
+#    - lb-zabbix_agent
+#    - lb-graylog_collector
+#    - lb-ufw
+#    - multi-zabbix_agent
+#    - lb-zabbix_agent
+
+- hosts: LB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  serial: 1
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-keepalived-setup
+    - multi-lsync-incron
+#    - lb-haproxy-configure

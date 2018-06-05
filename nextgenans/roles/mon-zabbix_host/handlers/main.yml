@@ -1,0 +1,6 @@
+---
+# mon-zabbix_server/handlers/main.yml
+- name: restart zabbix-proxy
+  service:
+    name: zabbix-proxy
+    state: restarted

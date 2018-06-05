@@ -1,0 +1,60 @@
+---
+# red-redis/tasks/main.yml
+- name: "Installing Redis -- tags: redis"
+  apt:
+    name: redis-server
+    state: present
+    update_cache: yes
+    cache_valid_time: 43200
+  tags:
+    - redis
+
+- name: "Copying redis-limits.conf to host -- tags: redis"
+  copy:
+    src: redis-limits.conf
+    dest: /etc/security/limits.d/redis-limits.conf
+  tags:
+    - redis
+
+- name: "Copying rc.local to host -- tags: redis"
+  copy:
+    src: rc.local
+    dest: /etc/rc.local
+  notify: hugepage
+  tags:
+    - redis
+
+- name: "Adding network tuning configuration -- tags: redis"
+  copy:
+    src: 60-redisnetwork.conf
+    dest: /etc/sysctl.d/60-redisnetwork.conf
+  notify:
+    - reload sysctl
+  tags:
+    - redis
+
+- name: "Adding main Redis configuration -- tags: redis"
+  copy:
+    src: redis.conf
+    dest: /etc/redis/redis.conf
+  notify:
+    - restart redis
+  tags:
+    - redis
+
+- name: "Run multi-memory-cal to get memory configuration -- tags: redis"
+  include_role:
+    name: multi-memory-cal
+  vars:
+    memory_percentage_required: 0.75
+  tags:
+    - redis
+
+- name: "Adding Lyons custom Redis configuration -- tags: redis"
+  template:
+    src: lyonscg.conf.j2
+    dest: /etc/redis/lyonscg.conf
+  notify:
+    - restart redis
+  tags:
+    - redis

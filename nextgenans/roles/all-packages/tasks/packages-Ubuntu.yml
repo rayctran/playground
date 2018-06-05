@@ -1,0 +1,91 @@
+---
+# all-packages/tasks/packages-Ubuntu.yml
+- name: "Installing the standard set of packages for Ubuntu -- tags: packages"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - aptitude
+    - apt-transport-https
+    - debconf
+    - debconf-utils
+    - dnsutils
+    - fail2ban
+    - htop
+    - mailutils
+    - python-apt
+    - python-dev
+    - python-software-properties
+    - python-pip
+    - python3-dev
+    - python3-pip
+    - rkhunter
+    - screen
+    - sysdig
+    - sysstat
+    - sysv-rc-conf
+    - tiger
+    - tmux
+    - vim-nox
+  tags:
+    - packages
+
+- name: "Installing ntp package for Ubuntu 14.04 Server -- tags: packages"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+    name: ntp
+  async: 300
+  poll: 15
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - packages
+
+- name: "Upgrading kernel and existing packages -- tags: packages, kernel_update"
+  apt:
+    upgrade: full
+  tags:
+    - packages
+    - kernel_update
+
+- name: "Checking if packages need to be autoremoved -- tags: packages, package_removal"
+  command: apt-get --dry-run autoremove
+  register: check_autoremove
+  changed_when: False
+  tags:
+    - packages
+    - package_removal
+
+- name: "Removing old or unused packages -- tags: packages, package_removal"
+  command: apt-get -y autoremove
+  args:
+    warn: no
+  when: "'packages will be REMOVED' in check_autoremove.stdout and ansible_distribution_release == 'trusty'"
+  tags:
+    - packages
+    - package_removal
+
+- name: Disable the APT periodic package list update.
+  lineinfile:
+    backup: yes
+    backrefs: yes
+    dest: /etc/apt/apt.conf.d/10periodic
+    regexp: '^APT::Periodic::Update-Package-Lists\s\"1\";'
+    line: 'APT::Periodic::Update-Package-Lists "0";'
+    state: present
+  when: ansible_distribution_release == 'xenial'
+
+- name: Disable the APT periodic distribution upgrade.
+  lineinfile:
+    backup: yes
+    backrefs: yes
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^\s*\"\$\{distro_id\}:\$\{distro_codename\}-security\";'
+    line: '//      "${distro_id}:${distro_codename}-security";'
+    state: present
+  when: ansible_distribution_release == 'xenial'

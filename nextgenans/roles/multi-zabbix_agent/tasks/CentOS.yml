@@ -1,0 +1,77 @@
+---
+# multi-zabbix_agent/tasks/CentOS.yml
+# 
+- name: "Adding Zabbix repository list for CentOS {{  ansible_distribution_major_version }}"
+  yum: 
+    name: "http://repo.zabbix.com/zabbix/3.0/rhel/{{  ansible_distribution_major_version }}/x86_64/zabbix-release-3.0-1.el{{ ansible_distribution_major_version }}.noarch.rpm" 
+    state: present
+  become: yes
+  tags:
+    - zabbix-agent
+
+- name: "Installing Zabbix Agent - CentOS"
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - zabbix-agent
+    - sysstat
+  become: yes
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Configuring Zabbix agent"
+  template:
+    src: zabbix_agentd.conf.j2
+    dest: /etc/zabbix/zabbix_agentd.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Creating LYONSCG custom Zabbix script directory"
+  file:
+    path: /etc/zabbix/scripts
+    state: directory
+    owner: zabbix
+    group: zabbix
+    mode: 0755
+  tags:
+    - zabbix-agent
+
+- name: "Adding Scripts to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/scripts/
+    owner: zabbix
+    group: zabbix
+    mode: 0755
+    force: yes
+  with_fileglob:
+    - scripts/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding Conf files to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  with_fileglob:
+    - conf/*
+  notify:
+    - restart zabbix-agent
+    - enabled zabbix-agent
+  tags:
+    - zabbix-agent

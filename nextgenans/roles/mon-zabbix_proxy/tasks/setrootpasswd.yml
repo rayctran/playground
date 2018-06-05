@@ -1,0 +1,8 @@
+---
+# roles/db-mysql-install/tasks/mysql56.yml
+- name: "Set MySQL root password before installing"
+  debconf:
+     name='mysql-server-5.6'
+     question='mysql-server/root_password'
+     value="{{mysql_root_password | quote}}"
+     vtype='password'

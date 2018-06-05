@@ -1,0 +1,43 @@
+---
+# m1-depoy-client/tasks/main.yml
+
+#- name: "Set Up capdeploy directory" 
+#  file:
+#    path: /var/www/capdeploy
+#    state: directory
+#    mode: 0755
+#    owner: www-data 
+#    group: www-data 
+
+- name: "Set ACL staging.lcgosc.com -- tags: m1-deploy-fixacl"
+  acl:
+    path: /var/www/staging.lcgosc.com
+    entity: deploy
+    etype: user
+    permissions: rwx
+    state: present
+  when: env_type | match('STG')
+  tags:
+    - m1-deploy-fixacl
+
+- name: "Set ACL preprod.lcgosc.com  -- tags: m1-deploy-fixacl"
+  acl:
+    path: /var/www/preprod.lcgosc.com
+    entity: deploy
+    etype: user
+    permissions: rwx
+    state: present
+  when: env_type | match('STG')
+  tags:
+    - m1-deploy-fixacl
+
+- name: "Set ACL production.lcgosc.com  -- tags: m1-deploy-fixacl"
+  acl:
+    path: /var/www/production.lcgosc.com
+    entity: deploy
+    etype: user
+    permissions: rwx
+    state: present
+  when: env_type | match('PRD')
+  tags:
+    - m1-deploy-fixacl

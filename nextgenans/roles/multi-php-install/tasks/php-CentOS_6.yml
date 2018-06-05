@@ -1,0 +1,54 @@
+---
+# web-php/tasks/php-CentOS_6-mod_php.yml
+- name: "Installing PHP -- tags: php-install"
+  yum:
+    update_cache: yes
+    state: installed
+    name: "{{ item }}"
+  with_items:
+    - php-cli
+    - php-common
+    - php-gd
+    - php-mbstring
+    - php-mcrypt
+    - php-mysql
+    - mysql
+    - php-pdo
+    - php-pear
+    - php-soap
+    - php-xml
+    - php-xmlrpc
+    - php-pecl-memcache
+    - php-pecl-memcached
+    - php-pecl-redis
+    - php-pecl-apc
+    - libmemcached
+    - php
+  notify:
+    - restart httpd
+  tags:
+    - php-install
+
+- name: "Copying APC configuration -- tags: php-install"
+  copy:
+    src: "{{ ansible_distribution }}-apc.ini"
+    dest: /etc/php.d/apc.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - php-install
+
+- name: "Copying PHP configuration -- tags: php-install"
+  copy:
+    src: "{{ ansible_distribution }}-php.ini"
+    dest: /etc/php.d/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - php-install

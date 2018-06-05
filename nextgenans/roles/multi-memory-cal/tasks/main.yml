@@ -1,0 +1,32 @@
+---
+# tasks/multi-memory-cal/main.yml
+- debug:
+    msg: "memory_percentage_required is undefined. Please defined this variable to proceed  -- tags: memory-cal"
+  when: memory_percentage_required is undefined
+  tags:
+    - memory-cal
+
+- name: "Get Current Memory Information -- tags: memory-cal"
+  shell: grep MemTotal /proc/meminfo | awk -F" " '{print $2}'
+  register: current_mem
+  tags:
+    - memory-cal
+
+- name: "Calculating Memory size in MB -- tags: memory-cal"
+  set_fact:
+      memory_cal_input: "{{ ((current_mem.stdout | int) / 1024) | round | int }}"
+  tags:
+    - memory-cal
+
+- debug:
+    msg: "memory_cal_input is {{ memory_cal_input }}"
+
+- name: "Calculating {{ memory_percentage_required }}% of the memory size -- tags: memory-cal"
+  set_fact:
+    memory_cal_output: "{{ ((memory_cal_input | int) * memory_percentage_required) | int }}"
+  tags:
+    - memory-cal
+
+- debug:
+    msg: "memory_cal_output is {{ memory_cal_output }}"
+

@@ -1,0 +1,13 @@
+---
+# web-lsyncd/handlers/main.yml
+- name: restart lsyncd
+  service:
+    name: lsyncd
+    state: restarted
+  
+- name: restart xinetd
+  service:
+    name: xinetd
+    state: restarted
+  
+  

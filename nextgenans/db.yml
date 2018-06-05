@@ -1,0 +1,63 @@
+#!/usr/bin/env ansible-playbook
+---
+# db.yml
+
+# This role ensure that the mysql credentials are available
+# It will create a new file with new password if the file 
+# doesn't exists. So if this is a current client, you 
+# must create this file before you run this playbook
+- hosts: DB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-keepalived-setup
+#    - db-graylog_collector
+#    - db-ufw
+#    - multi-zabbix_agent
+#    - db-zabbix_agent
+
+- hosts: DB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  serial: 1
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - all-lvm
+    - db-passwd-manager
+    - db-mysql-install
+
+- hosts: DB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - db-passwd-manager
+    - db-mysql-db-config
+
+- hosts: DB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  serial: 1
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - db-passwd-manager
+    - db-mysql-replication
+  tags:
+    - mysql-replication

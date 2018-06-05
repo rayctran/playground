@@ -1,0 +1,143 @@
+---
+# all-active_directory/tasks/active_directory-Ubuntu.yml
+- name: "Verfying required Active Directory packages are present -- tags: active_directory"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - adcli
+    - krb5-user
+    - packagekit
+    - realmd
+    - sssd
+    - samba-common
+    - samba-common-bin
+    - samba-libs
+    - sssd-tools
+  tags:
+    - active_directory
+
+- name: "Check if Active Directory is already configured -- tags: active_directory, join_ad"
+  command: /usr/sbin/realm list
+  register: joined_realms
+  changed_when: false
+  failed_when: joined_realms.rc > 0
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Joining SYS AD if we are not already joined to a realm -- tags: active_directory, join_ad"
+  shell: echo 92kgNGtPNjc7eQ | /usr/sbin/realm join -U djoiner sys.lcgosc.com
+  when: joined_realms.stdout == ""
+  register: join_results
+  failed_when: "'No such realm found' in join_results.stderr"
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Getting the permission policies -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm list
+  register: realm_list
+  changed_when: false
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Setting base login policy -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm deny -R sys.lcgosc.com -a
+  when: "'login-policy: allow-realm-logins' in realm_list.stdout"
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Allowing LyonsCG_Ah group to log in -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm permit -R sys.lcgosc.com -g LyonsCG_Ah
+  when: "'LyonsCG_Ah' not in realm_list.stdout"
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Allowing LyonsCG_Ah_LimitedAccess group to log in -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm permit -R sys.lcgosc.com -g LyonsCG_Ah_LimitedAccess
+  when: "'LyonsCG_Ah_LimitedAccess' not in realm_list.stdout and env_type != 'PRD' or  env_type != 'DMZ'"
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Allowing LyonsCG_Ah_ReadAccess group to log in -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm permit -R sys.lcgosc.com -g LyonsCG_Ah_ReadAccess
+  when: "'LyonsCG_Ah_ReadAccess' not in realm_list.stdout"
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Allowing LyonsCG_As group to log in -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm permit -R sys.lcgosc.com -g LyonsCG_As
+  when: "'LyonsCG_As' not in realm_list.stdout and env_type != 'INT' or env_type != 'DMZ'"
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Allowing LyonsCG_Ei_Magento group to log in -- tags: active_directory, ad_login"
+  command: /usr/sbin/realm permit -R sys.lcgosc.com -g LyonsCG_Ei
+  when: "'LyonsCG_Ei' not in realm_list.stdout and env_type == 'DEV' or env_type == 'STG'"
+  tags:
+    - active_directory
+    - ad_login
+
+- name: "Altering sssd.conf to comment out use_fully_qualified_names -- tags: active_directory, sssd"
+  lineinfile:
+    dest: /etc/sssd/sssd.conf
+    regexp: "^(use_fully_qualified_names = True)"
+    line: '#\1'
+    backrefs: yes
+    state: present
+  tags:
+    - active_directory
+    - sssd
+
+- name: "Altering sssd.conf to correct homedir path -- tags: active_directory, sssd"
+  lineinfile:
+    dest: /etc/sssd/sssd.conf
+    regexp: "^(fallback_homedir).*"
+    line: '\1 = /home/%u'
+    backrefs: yes
+    state: present
+  tags:
+    - active_directory
+    - sssd
+
+- name: "Altering sssd.conf to force AD UID/GID -- tags: active_directory, sssd"
+  lineinfile:
+    dest: /etc/sssd/sssd.conf
+    regexp: "^(ldap_id_mapping).*"
+    line: '\1 = False'
+    backrefs: yes
+    state: present
+  tags:
+    - active_directory
+    - sssd
+
+- name: "Remove sssd ldb files -- tags: active_directory, sssd"
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_fileglob:
+    - "/var/lib/sss/db/*ldb"
+  notify:
+    - restart sssd
+  tags:
+    - active_directory
+    - sssd
+
+- name: "Altering PAM common-session to add mkhomedir module -- tags: active_directory, pam"
+  lineinfile:
+    dest: /etc/pam.d/common-session
+    state: present
+    line: "session required        pam_mkhomedir.so skel=/etc/skel/ umask=0077"
+    insertafter: EOF
+  tags:
+    - active_directory
+    - pam

@@ -1,0 +1,61 @@
+---
+# m1-depoy-server/tasks/mk_deploy_user.yml
+# Playbook to set up deploy user
+- name: "Set Up deploy user on Server -- tags: m1-deploy-user"
+  user:
+    name: deploy
+    uid: 1001
+    state: present
+  tags:
+    - m1-deploy-user
+
+- name: "Set up deploy user's ssh directory -- tags: m1-deploy-user"
+  file:
+    path: /home/deploy/.ssh
+    owner: deploy
+    group: deploy
+    mode: 0755
+    state: directory
+  tags:
+    - m1-deploy-user
+
+- name: "Copy rsa keys from the local deploy user to the remote server -- tags: m1-deploy-user"
+  copy:
+    src: /home/deploy/.ssh/id_rsa
+    dest: /home/deploy/.ssh/id_rsa
+    mode: 0600
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-user
+
+- name: "Copy rsa public keys -- tags: m1-deploy-user"
+  copy:
+    src: /home/deploy/.ssh/id_rsa.pub
+    dest: /home/deploy/.ssh/id_rsa.pub
+    mode: 0644
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-user
+
+- name: "Setup deploy user authorized key -- tags: m1-deploy-user"
+  copy:
+    src: /home/deploy/.ssh/id_rsa.pub
+    dest: /home/deploy/.ssh/authorized_keys
+    mode: 0644
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-user
+
+#Cheating by adding signature of bitbucket
+- name: "Setup deploy user known_hosts -- tags: m1-deploy-user"
+  copy:
+    src: known_hosts
+    dest: /home/deploy/.ssh/known_hosts
+    mode: 0644
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-user

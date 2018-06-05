@@ -1,0 +1,6 @@
+---
+# adm-monitoring-graylog/handlers/main.yml
+- name: Restart rsyslog
+  service:
+    name: rsyslog
+    state: restarted

@@ -1,0 +1,94 @@
+---
+# all-active_directory/tasks/active_directory-CentOS.yml
+- name: "Installing required Active Directory packages -- tags: active_directory"
+  yum:
+    update_cache: yes
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - krb5-workstation
+    - samba-common
+    - authconfig
+    - sssd
+  tags:
+    - active_directory
+
+- name: "Update resolv.conf -- tags: active_directory, dns"
+  copy:
+    src: "{{ ansible_distribution }}-resolv.conf"
+    dest: /etc/resolv.conf
+    backup: yes
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - active_directory
+    - dns
+
+- name: "Update /etc/hosts -- tags: active_directory"
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^{{ ansible_default_ipv4.address }}*"
+    line: "{{ ansible_default_ipv4.address }}     {{ ansible_hostname }} {{ ansible_hostname }}.sys.lcgosc.com {{ ansible_fqdn }}"
+    backup: yes
+  tags:
+    - active_directory
+
+- name: "Run authconfig -- tags: active_directory, join_ad"
+  shell: authconfig --update --enablesssd --enablesssdauth --enablemkhomedir
+  args:
+    creates: /etc/sssd/sssd.conf
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Update Kerberos configuration -- tags: active_directory, join_ad"
+  copy:
+    src: krb5.conf
+    dest: /etc/krb5.conf
+    mode: 0644
+    owner: root
+    group: root
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Update Samba configuration -- tags: active_directory, join_ad"
+  copy:
+    src: smb.conf
+    dest: /etc/samba/smb.conf
+    mode: 0644
+    owner: root
+    group: root
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Getting a Kerberos ticket -- tags: active_directory, join_ad"
+  shell: echo 92kgNGtPNjc7eQ | kinit djoiner
+  args:
+    creates: /etc/sssd/sssd.conf
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Joining the domain -- tags: active_directory, join_ad"
+  shell: net ads join -k
+  args:
+    creates: /etc/sssd/sssd.conf
+  tags:
+    - active_directory
+    - join_ad
+
+- name: "Putting SSSD configuration in place -- tags: active_directory, join_ad"
+  copy:
+    src: "{{ ansible_distribution }}-{{ env_type }}-sssd.conf"
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify:
+    - restart sssd
+  tags:
+    - active_directory
+    - join_ad

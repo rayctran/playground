@@ -1,0 +1,58 @@
+---
+# web-php/tasks/main.yml
+
+- name: "Checking PHP processor option -- tags: php-fpm"
+  fail: msg="Required php_processor {{ php_processor }} is invalid. Please enter mod_php or PHP-FPM"
+  when: not (php_processor | match("PHP-FPM|mod_php"))
+  tags:
+    - php-fpm
+
+# Set php memory allocation 
+- name: "Set default php memory limit for M1 -- tags: php-fpm"
+  set_fact:
+     fpm_memory_limit: 512
+  when:
+    - app_type == "M1"
+  tags:
+    - php-fpm
+    - web-php
+
+- name: "Set default php memory limit for M2 -- tags: php-fpm"
+  set_fact:
+     fpm_memory_limit: 768
+  when:
+    - app_type == "M2"
+  tags:
+    - php-fpm
+    - web-php
+
+- name: "Run multi-memory-cal to get memory configuration -- tags: php-fpm"
+  include_role:
+    name: multi-memory-cal
+  vars:
+    memory_percentage_required: 0.75
+  when:
+    - php_processor == "PHP-FPM"
+  tags:
+    - php-fpm
+    - web-php
+
+- name: "Set max children process -- tags: php-fpm"
+  set_fact:
+    fpm_max_children: "{{ ((memory_cal_output | int) / fpm_memory_limit) | round | int }}"
+  when:
+    - php_processor == "PHP-FPM"
+  tags:
+    - php-fpm
+    - web-php
+
+- debug:
+    msg: "fpm_max_children is {{ fpm_max_children }} and fpm_memory_limit is {{ fpm_memory_limit }}"
+  when:
+    - php_processor == "PHP-FPM"
+  tags:
+    - php-fpm
+    - web-php
+
+- name: "Configure php for {{ ansible_distribution ||"
+  include: php-{{ ansible_distribution }}.yml

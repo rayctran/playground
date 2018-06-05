@@ -1,0 +1,23 @@
+---
+# adm-postfix/tasks/main.yml
+- name: "Installing Postfix"
+  apt:
+    name: postfix
+    state: present
+  notify:
+    - restart postfix
+
+- name: "Changing masquerade settings"
+  template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    backup: yes
+  notify:
+    - restart postfix
+
+- name: "Importing SMTP maps"
+  template:
+    src: generic.j2
+    dest: /etc/postfix/generic
+  notify:
+    - set postmap

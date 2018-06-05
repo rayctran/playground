@@ -1,0 +1,99 @@
+---
+# db-mysql/tasks/main.yml
+---
+# db-mysql/tasks/mysql5-5.yml
+- name: "Installing MySQL packages."
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - mysql-client-5.6
+    - mysql-server-5.6
+    - percona-xtrabackup
+    - python-mysqldb
+  notify:
+    - restart mysql
+
+- name: "Ensuring the MySQL service is stopped."
+  service:
+    name: mysql
+    state: stopped
+
+- name: "Copying my.cnf into place."
+  copy:
+    src: my.cnf
+    dest: /etc/mysql/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart mysql
+
+- name: "Copying Lyons tuning file into place."
+  template:
+    src: lyonscg.cnf.j2
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart mysql
+
+##### OPTION ONE
+- name: "Removing ib_logfile(s) to ensure configuration files load."
+  file:
+    path: {{ item }}
+    state: absent
+  with_fileglob:
+    - /var/lib/mysql/ib_logfile*
+
+##### OPTION TWO
+#- name: "Removing ib_logfile(s) to ensure configuration files load."
+#  command: rm -f /var/lib/mysql/ib_logfile*
+#  args:
+#    removes: /var/lib/mysql/ib_logfile*
+#  ignore_errors: yes
+#  changed_when: false
+
+
+##### OPTION THREE
+#- name: "Getting list of log files."
+#  command: ls /var/lib/mysql/ib_logfile*
+#  register: list_files
+#
+#- name: "Removing ib_logfile(s) to ensure configuration files load."
+#  file:
+#    name: {{ item }}
+#    state: absent
+#  with_items:
+#    - listed_files.stdout_lines
+
+- name: "Starting the MySQL service."
+  service:
+    name: mysql
+    state: started
+
+- name: "Check if MySQL has password set for root (** You May See Errors **)"
+  command:   mysql -u root -e 'select user from mysql.user'
+  register: mysql_password_check
+  ignore_errors: yes
+
+- name: "Setting root user password."
+  mysql_user:
+    name: root
+    host: {{ item }}
+    password: {{ mysql_root_password }}
+    login_user: root
+    login_password: {{ mysql_root_password_init }}
+  with_items:
+    - "{{ ansible_default_ipv4.address }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+  notify:
+    - restart mysql
+  when: mysql_password_check.stdout > ''

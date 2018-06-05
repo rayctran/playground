@@ -1,0 +1,79 @@
+---
+# db-zabbix_agent/tasks/main.yml
+- name: "Installing MySQL python required for Ansible"
+  apt:
+    name:  python-mysqldb
+    update_cache: no
+  tags:
+    - zabbix-agent
+
+- name: "Adding MySQL client credentials for Zabbix"
+  copy:
+    src: "my.cnf.{{ansible_distribution}}"
+    dest: /etc/zabbix/.my.cnf
+    owner: zabbix
+    group: zabbix
+    mode: 0600
+    force: yes
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding Scripts to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/scripts/
+    owner: zabbix
+    group: zabbix
+    mode: 0755
+    force: yes
+  with_fileglob:
+    - scripts/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding Conf files to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  with_fileglob:
+    - conf/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding the Zabbix user to Ubuntu MySQL"
+  mysql_user:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: zabbix
+    password: Nn8y7m0PH8d4Mz8k
+    priv: '*.*:SELECT,REPLICATION CLIENT'
+    state: present
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-agent
+
+- name: "Adding the Zabbix user to CentOS MySQL"
+  mysql_user:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/lib/mysql/mysql.sock
+#    login_port: 3306
+    name: zabbix
+    password: Nn8y7m0PH8d4Mz8k
+    priv: '*.*:SELECT,REPLICATION CLIENT'
+    state: present
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - zabbix-agent

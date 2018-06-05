@@ -1,0 +1,168 @@
+---
+# web-php/tasks/php-Ubuntu_trusty-PHP-FPM.yml
+- name: "Installing PHP -- tags: multi-php-install"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - libapache2-mod-fastcgi
+    - mysql-client-5.6
+    - php5
+    - php5-fpm
+    - php5-cli
+    - php5-curl
+    - php5-gd
+    - php5-intl
+    - php5-json
+    - php5-mcrypt
+    - php5-mysql
+    - php5-readline
+    - php5-xmlrpc
+    - php-pear
+    - php-soap
+  notify:
+    - restart apache
+  tags:
+    - multi-php-install
+
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+- name: "Enabling Apache PHP-FPM modules -- tags: multi-php-install"
+#  apache2_module:
+#    state: present
+#    name: "{{ item }}"
+#    ignore_configcheck: yes
+#    with_items:
+#      - actions
+#      - fastcgi
+#      - mpm_prefork
+#      - proxy
+#      - proxy_fcgi
+#      - proxy_http
+#  notify:
+#    - restart apache
+  command: "/usr/sbin/a2enmod {{ item }}"
+  with_items:
+      - actions
+      - fastcgi
+      - mpm_prefork
+      - proxy
+      - proxy_fcgi
+      - proxy_http
+  notify:
+    - restart apache
+  tags:
+    - multi-php-install
+
+- name: "Enabling PHP mcrypt module -- tags: multi-php-install"
+  command: php5enmod mcrypt
+  notify:
+    - restart php5-fpm
+  tags:
+    - multi-php-install
+
+- name: "Copying FPM php.ini -- tags: multi-php-install"
+  copy:
+    src: php.ini
+    dest: /etc/php5/fpm/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart php5-fpm
+  tags:
+    - multi-php-install
+
+- name: "Copying CLI php.ini -- tags: multi-php-install"
+  copy:
+    src: php.ini
+    dest: /etc/php5/cli/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - multi-php-install
+
+# 12/2017
+# vhost is addressed in the multi-web role
+#- name: "Copying vhost file"
+#  template:
+#    src: fpm5-vhost.conf.j2
+#    dest: /etc/apache2/sites-available/{{ client_code }}{{ env_type }}.lcgosc.com.conf
+#    owner: root
+#    group: root
+#    mode: 0644
+#  notify:
+#    - ubuntu enable site
+#    - restart apache
+#  tags:
+#    - php-fpm 
+
+- name: "Copying FPM Apache conf -- tags: multi-php-install"
+  copy:
+    src: php5-fpm.conf
+    dest: /etc/apache2/conf-available/fpm.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload apache
+  tags:
+    - php-fpm
+
+- name: "Enabling FPM conf -- tags: multi-php-install"
+  command: "/usr/sbin/a2enconf {{ item }}"
+  with_items:
+    - fpm
+  notify:
+    - restart apache
+  tags:
+    - multi-php-install
+
+- name: "Enabling FPM for Apache -- tags: multi-php-install"
+  command: a2enconf fpm
+  notify:
+    - restart apache
+  tags:
+    - multi-php-install
+
+- name: "Creating socket directory -- tags: multi-php-install"
+  file:
+    path: /var/run/php
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  tags:
+    - multi-php-install
+
+- name: "Removing existing FPM pool definitions -- tags: multi-php-install"
+  file:
+    path: /etc/php5/fpm/pool.d/www.conf
+    state: absent
+  tags:
+    - multi-php-install
+
+- name: "Copying FPM pool definition -- tags: multi-php-install"
+  template:
+    src: fpm5-pool.conf.j2
+    dest: /etc/php5/fpm/pool.d/{{ client_code }}{{ env_type }}.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload php5-fpm
+  tags:
+    - multi-php-install
+
+- name: "Making logfile directory and setting permissions -- tags: multi-php-install"
+  file:
+    path: /var/log/fpm
+    owner: www-data
+    group: www-data
+    state: directory
+  tags:
+    - multi-php-install

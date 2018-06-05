@@ -1,0 +1,13 @@
+---
+# all-active_directory/tasks/main.yml
+
+- name: "Including CentOS Active Directory components"
+  include: active_directory-{{ ansible_distribution }}.yml
+  when: ansible_distribution == 'CentOS'
+
+- name: "Including Ubuntu Active Directory components"
+  include: active_directory-{{ ansible_distribution }}.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: "Including common Active Directory components"
+  include: active_directory-common.yml

@@ -1,0 +1,10 @@
+##########################################
+###  This file is managed by Ansible   ###
+### and may be overwritten at any time ###
+##########################################
+
+
+# Options to pass to keepalived
+
+# DAEMON_ARGS are appended to the keepalived command-line
+DAEMON_ARGS="--log-detail"

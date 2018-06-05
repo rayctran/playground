@@ -1,0 +1,78 @@
+---
+# multi-lcgosc-cert/tasks/main.yml
+- name: "Copying the LCGOSC wildcard combined certificate -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.combined.crt
+    dest: /etc/haproxy/ssl/
+    owner: root
+    group: root
+    mode: 0644
+  when: inventory_hostname in groups.LB and ansible_distribution == 'Ubuntu'
+  tags:
+    - cert
+
+- name: "Copying the LCGOSC wildcard chain certificate -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.chain.crt
+    dest: /etc/ssl/certs/
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - cert
+
+- name: "Copying the LCGOSC wildcard certificate -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.crt
+    dest: /etc/ssl/certs/
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - cert
+
+- name: "Copying the LCGOSC wildcard key -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.key
+    dest: /etc/ssl/private/
+    owner: root
+    group: root
+    mode: 0600
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - cert
+
+- name: "Copying the LCGOSC wildcard chain certificate -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.chain.crt
+    dest: /etc/pki/tls/certs/
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - cert
+
+- name: "Copying the LCGOSC wildcard certificate -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.crt
+    dest: /etc/pki/tls/certs/
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - cert
+
+- name: "Copying the LCGOSC wildcard key -- tags: cert"
+  copy:
+    src: wc.lcgosc.com.key
+    dest: /etc/pki/tls/private/
+    owner: root
+    group: root
+    mode: 0600
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - cert

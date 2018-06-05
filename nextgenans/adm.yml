@@ -1,0 +1,60 @@
+#!/usr/bin/env ansible-playbook
+---
+# web.yml
+
+- hosts: ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-apache-install
+    - multi-lcgosc-cert
+#    - web-postfix
+#    - web-lsyncd
+#    - web-balance
+#    - web-magento
+#    - web-newrelic
+#    - web-graylog_collector
+#    - web-ufw
+#    - multi-zabbix_agent
+#    - web-zabbix_agent
+
+- hosts: ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-php-install
+    - web-config-vhost
+
+- hosts: ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - web-php-geoip
+    - web-php-ioncube
+    - multi-lsync-incron
+
+- hosts: ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-postfix

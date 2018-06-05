@@ -1,0 +1,39 @@
+{% if replication_role==primary %}
+server-id = {{ server_id }}
+auto_increment_increment = 10
+auto_increment_offset = {{ server_id }}
+interactive_timeout = 3600
+wait_timeout = 3600
+#log-slave-updates  #required on master-master with read slave(s)
+#skip-slave  #used for testing, not for production
+{% endif %}
+
+{% if replication_role==secondary %}
+server-id = {{ server_id }}
+auto_increment_increment = 10
+auto_increment_offset = {{ server_id }}
+interactive_timeout = 3600
+wait_timeout = 3600
+#log-slave-updates  #required on master-master with read slave(s)
+#skip-slave  #used for testing, not for production
+{% endif %}
+
+{% if repl_ro_slave is defined and  replication_role==secondary %}
+server-id = {{ server_id }}
+auto_increment_increment = 10
+auto_increment_offset = {{ server_id }}
+interactive_timeout = 3600
+wait_timeout = 3600
+log-slave-updates  #required on master-master with read slave(s)
+#skip-slave  #used for testing, not for production
+{% endif %}
+
+{% if replication_role==bi %}
+server-id = {{ server_id }}
+auto_increment_increment = 10
+auto_increment_offset = {{ server_id }}
+interactive_timeout = 3600
+wait_timeout = 3600
+read_only
+#skip-slave  #used for testing, not for production
+{% endif %}

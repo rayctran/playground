@@ -1,0 +1,19 @@
+---
+# multi-apache/tasks/multi-apache-CentOS.yml
+- name: "Set vhost name -- tags: apache"
+  set_fact:
+    vhost_name : "{{ client_code | lower }}-{{ app_type | lower }}-{{ env_type | lower }}"
+  tags:
+    - web-config-vhost
+
+- name: "Adding base vhost configuration -- tags: apache"
+  template:
+    src: "{{ ansible_distribution }}-lcgosc.com.conf.j2"
+    dest: "/etc/httpd/conf.d/{{ vhost_name }}-{{ env_type | lower}}.lcgosc.com.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - web-config-vhost

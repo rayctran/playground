@@ -1,0 +1,18 @@
+#!/usr/bin/env ansible-playbook
+---
+# ela.yml
+
+- hosts: ELA
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-java
+    - ela-elasticsearch-install
+#    - multi-zabbix_agent
+#    - ela-graylog_collector
+#    - ela-ufw

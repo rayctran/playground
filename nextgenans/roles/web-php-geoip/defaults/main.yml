@@ -1,0 +1,5 @@
+---
+# web-php/defaults/main.yml
+php_processor: PHP-FPM
+fpm_max_children: 100
+fpm_memory_limit: 716M

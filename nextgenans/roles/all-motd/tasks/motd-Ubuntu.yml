@@ -1,0 +1,54 @@
+---
+# all-motd/tasks/motd-Ubuntu.yml
+
+- name: "Setting MOTD -- tags: motd"
+  template:
+    src: "{{ ansible_distribution }}-server-identification.j2"
+    dest: /etc/update-motd.d/99-server-identification
+    owner: root
+    group: root
+    mode: 0755
+  tags:
+    - motd
+
+- name: "Removing legal notice -- tags: motd"
+  template:
+    src: legal
+    dest: /etc/legal
+    owner: root
+    group: root
+    mode: 0755
+    backup: yes
+  tags:
+    - motd
+
+- name: "Adjusting header text -- tags: motd"
+  template:
+    src: 00-header
+    dest: /etc/update-motd.d/00-header
+    owner: root
+    group: root
+    mode: 0755
+    backup: no
+    force: yes
+  tags:
+    - motd
+
+- name: "Removing help text -- tags: motd"
+  file:
+    path: /etc/update-motd.d/10-help-text
+    state: absent
+  tags:
+    - motd
+
+- name: "Cleaning up system information output -- tags: motd, landscape"
+  template:
+    src: client.conf
+    dest: /etc/landscape/client.conf
+    owner: root
+    group: root
+    mode: 0755
+  when: "ansible_distribution_version == 14.04"
+  tags:
+    - motd
+    - landscape

@@ -1,0 +1,28 @@
+---
+# config-management/tasks/main.yml
+- name: "Get A List of files in the Haproxy Directory"
+  find:
+    path: "/etc/haproxy"
+    recurse: yes
+  register: haproxy_files
+
+- name: "Get files"
+  fetch:
+    src: "{{ item.path }}"
+    dest: ./files/LB
+    flat: no
+  with_items: "{{ haproxy_files.files }}"
+
+- name: "Get A List of files in the keepalived Directory"
+  find:
+    path: "/etc/keepalived"
+    recurse: yes
+  register: ka_files
+
+- name: "Get files"
+  fetch:
+    src: "{{ item.path }}"
+    dest: ./files/LB
+    flat: no
+  with_items: "{{ ka_files.files }}"
+

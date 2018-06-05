@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+#
+# checkram.pl - Check RAM usage and reload if over 90%
+# Install path: /usr/local/bin/checkram.pl
+#### INSTALL: ####
+# 1. Touch /var/log/checkram.log
+# 2. Install crontab as below:
+# * * * * * /usr/bin/perl /usr/local/bin/checkram.pl >> /var/log/checkram.log 2>&1
+
+use warnings;
+use strict;
+
+my $swap = `free -m | grep ^Swap`;
+my $ram = `free -m | grep ^Mem`;
+my @ramargs = split(' ',$ram);
+my @args = split(' ',$swap);
+my $value = $args[2];
+my $total = $args[1];
+my $ramval = $ramargs[2];
+my $cacheval = $ramargs[6];
+my $ramtot = $ramargs[1];
+
+my $ts = scalar localtime;
+
+my $ramused = $ramval - $cacheval;
+
+print "[$ts] Ram (used-cache/total): $ramused/$ramtot Swap: $value/$total\n";
+
+if ($value >= 1024 || $ramused >= ($ramtot * .90 )) {
+	my $returnCode = 255;
+	for (my $x = 1; $x <= 10; $x++) {
+		print "[$ts] Attempt $x:\n";
+		print "[$ts] Reloading Apache...\n[$ts] ";
+		$returnCode = system("/sbin/service apache2 stop");
+		if ($returnCode == 0) {
+			print "[$ts] Reloaded!\n";
+			last;
+		}
+		elsif ($x < 10) {
+			print "[$ts] Error: $!\n";
+			print "[$ts] Attempting again.\n";
+		}
+		else {
+			print "[$ts] KILLING APACHE PROCESSES!";
+			system ("killall -9 apache2");
+		}
+	}
+
+	$returnCode = system("/sbin/swapoff -a; /sbin/swapon -a");
+
+	if ($returnCode != 0) {
+		print "[$ts] Error: $!\n";
+	}
+
+	$returnCode = system("/sbin/service apache2 start");
+
+	if ($returnCode != 0) {
+		print "[$ts] Error: $!\n";
+	}
+}

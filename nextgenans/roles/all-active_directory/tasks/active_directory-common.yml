@@ -1,0 +1,53 @@
+---
+# all-active_directory/tasks/active_directory-common.yml
+
+- name: "Granting LyonsCG_Ah AD group to use sudo -- tags: active_directory, sudo_access"
+  copy:
+    src: 01-lyonscg_ah
+    dest: /etc/sudoers.d/01-lyonscg_ah
+    owner: root
+    group: root
+    mode: 0440
+    force: yes
+  tags:
+    - active_directory
+    - sudo_access
+
+- name: "Granting LyonsCG_As AD group to use sudo -- tags: active_directory, sudo_access"
+  copy:
+    src: 03-lyonscg_as
+    dest: /etc/sudoers.d/03-lyonscg_as
+    owner: root
+    group: root
+    mode: 0440
+    force: yes
+  when: env_type != "INT"
+  tags:
+    - active_directory
+    - sudo_access
+
+- name: "Granting LyonsCG_Ei AD group to use sudo -- tags: active_directory, sudo_access"
+  copy:
+    src: 05-lyonscg_ei
+    dest: /etc/sudoers.d/05-lyonscg_ei
+    owner: root
+    group: root
+    mode: 0440
+    force: yes
+  when: env_type == "DEV" or env_type == "STG"
+  tags:
+    - active_directory
+    - sudo_access
+
+- name: "Granting LyonsCG_Ah_LimitedAccess AD group to use sudo -- tags: active_directory, sudo_access"
+  copy:
+    src: 06-lyonscg_ah_limited
+    dest: /etc/sudoers.d/06-lyonscg_ah_limited
+    owner: root
+    group: root
+    mode: 0440
+    force: yes
+  when: env_type != "PRD" or env_type != "DMZ"
+  tags:
+    - active_directory
+    - sudo_access

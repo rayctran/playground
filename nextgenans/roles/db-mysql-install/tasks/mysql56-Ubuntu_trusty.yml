@@ -1,0 +1,125 @@
+---
+# db-mysql-install/tasks/main.yml
+- name: "Check if MySQL is already installed"
+  shell: dpkg -s mysql-server-5.6 | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  tags:
+    - mysql-install
+
+- debug:
+    msg: " MySQL is already installed. Skipping MySQL installation..."
+  when: is_installed.rc == 0
+  tags:
+    - mysql-db-config
+
+- meta: end_play
+  when: is_installed.rc == 0
+  tags:
+    - mysql-db-config
+
+- name: "Set MySQL root password before installing"
+  debconf:
+     name: 'mysql-server-5.6'
+     question: 'mysql-server/root_password'
+     value: "{{mysql_root_password | quote}}"
+     vtype: 'password'
+  when: is_installed.rc != 0
+  tags:
+    - mysql-install
+
+- name: "Set MySQL root password again before installing"
+  debconf:
+     name: 'mysql-server-5.6'
+     question: 'mysql-server/root_password_again'
+     value: "{{mysql_root_password | quote}}"
+     vtype: 'password'
+  when: is_installed.rc != 0
+  tags:
+    - mysql-install
+
+- name: "Installing MySQL packages."
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - mysql-client-5.6
+    - mysql-server-5.6
+    - mysqltuner
+    - percona-xtrabackup
+    - python-mysqldb
+  notify:
+    - stop mysql
+#    - remove datadir files
+#    - create datadir
+#    - install db
+  tags:
+    - mysql-install
+
+- name: Re-initialize the database
+  file:
+    path: /var/lib/mysql/
+    state: absent
+  tags:
+    - mysql-install
+
+- name: Recreating the database information
+  command: /usr/bin/mysql_install_db
+  notify:
+    - start mysql
+  tags:
+    - mysql-install
+
+- name: "Copying basic config file."
+  copy:
+    src: my56.cnf
+    dest: /etc/mysql/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - start mysql
+  tags:
+    - mysql-install
+
+- name: "Copying basic version of the Lyons custom config file."
+  copy:
+    src: lyonscg-Ubuntu_trusty.cnf
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - mysql-install
+
+# 9/22/2017 - Relocate MySQL data directory to /data/mysql
+
+- name: Get information about /var/lib/mysql
+  stat:
+    path: /var/lib/mysql
+  register: mysql_dir
+  tags:
+    - mysql-install
+
+- debug:
+    msg: "/var/lib/mysql exists and is a symlink"
+  when: mysql_dir.stat.islnk is defined and mysql_dir.stat.islnk
+  tags:
+    - mysql-install
+
+- debug:
+    msg: "/var/lib/mysql exists and isn't a symlink"
+  when: mysql_dir.stat.islnk is defined and mysql_dir.stat.islnk == False
+  tags:
+    - mysql-install
+
+- name: Initiate /var/lib/mysql relocation tasks and stopping mysql
+  include: mysql-dir-relo.yml
+  when: mysql_dir.stat.islnk is defined and mysql_dir.stat.islnk == False
+  tags:
+    - mysql-install

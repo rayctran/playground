@@ -1,0 +1,5 @@
+# This file is managed by Ansible.
+# Any manual changes may be overwritten at any time.
+
+# Members of the Lyons eCommerce Implementation group may elevate privileges. Only on Dev.
+%LyonsCG_Ei ALL=(ALL:ALL) ALL

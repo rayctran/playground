@@ -1,0 +1,55 @@
+---
+# lt-jmeter/tasks/main.yml
+
+- name: "Installing jMeter"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  with_items:
+    - default-jre
+    - jmeter
+
+# jMeter master only
+- name: "Installing Xwindows and RDP"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - xrdp
+    - xfce4
+  when: lt_type == 'master'
+
+- name: "Installing the notepadqq repository"
+  apt_repository:
+    update_cache: yes
+    repo: "ppa:notepadqq-team/notepadqq"
+    state: present
+  when: lt_type == 'master'
+
+- name: "Update remote_hosts"
+  replace:
+    backup: yes
+    dest: /usr/share/jmeter/bin/jmeter.properties
+    regexp: '^remote_hosts=127\.0\.0\.1'
+    replace: 'remote_hosts={{ lt_remote_hosts }}'
+  when: lt_type == 'master'
+
+# jMeter Client Config
+- name: "Update jmeter-server file"
+  lineinfile:
+    dest: /usr/share/jmeter/bin/jmeter-server
+    backup: yes
+    regexp: '^#RMI_HOST_DEF=-Djava\.rmi\.server\.hostname=xxx\.xxx\.xxx\.xxx'
+    line: 'RMI_HOST_DEF=-Djava.rmi.server.hostname={{ inventory_hostname }}'
+    state: present
+  when: lt_type == 'slave'
+
+- name: "Start jMeter Remote Node"
+  shell: "/usr/bin/jmeter-server &"
+  when: lt_type == 'slave'

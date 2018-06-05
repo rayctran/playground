@@ -1,0 +1,11 @@
+---
+# ela-elasticsearch-install/handlers/main.yml
+- name: restart elasticsearch
+  service: 
+    name: elasticsearch
+    state: restarted
+
+- name: enable elasticsearch
+  service: 
+    name: elasticsearch
+    enabled: yes

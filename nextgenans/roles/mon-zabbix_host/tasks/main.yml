@@ -1,0 +1,142 @@
+---
+# mon-zabiix_host/tasks/main.yml
+#### Adding host to Zabbix
+- name: "Set Zabbix URL for Production -- tags: zabbix-add-host"
+  set_fact:
+    zabbix_url: 'https://zabbix.lcgosc.com/zabbix'
+  run_once: true
+  when: env_type | match('PRD|DMZ|INT')
+  tags: 
+    - zabbix-add-host
+
+- name: "Set Zabbix URL Stage and Development -- tags: zabbix-add-host"
+  set_fact:
+    zabbix_url: 'https://stagezabbix.lcgosc.com/zabbix'
+  run_once: true
+  when: env_type | match('STG')
+  tags: zabbix-setup
+
+- name: "Setting template for LB servers -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "HAProxy Service v2"
+  when: inventory_hostname in groups['LB']
+
+- name: "Setting template for DB servers -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "MySQL Service"
+  when: inventory_hostname in groups['DB']
+
+- name: "Setting template for Web servers -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "Apache Service"
+  when: inventory_hostname in groups['WEB'] or inventory_hostname in groups['ADM']
+
+- name: "Setting template for Redis servers -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "Redis Service"
+  when: inventory_hostname in groups['RED']
+
+- name: "Setting template for Varnish servers -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "Varnish Service"
+  when: inventory_hostname in groups['VAR']
+
+- name: "Setting template for Solr servers -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "Apache SOLR"
+  when: inventory_hostname in groups['SLR']
+
+- name: "Setting template for Zabbix proxy -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "Zabbix Proxy"
+  when: inventory_hostname in groups['MON']
+
+- name: "Setting template for Jenkins server -- tags: zabbix-add-hosts"
+  set_fact: 
+    zabbix_template: "Jenkins Service"
+  when: inventory_hostname in groups['CI']
+
+- name: "Creating a new host in Zabbix -- tags: zabbix-add-host"
+  local_action:
+    module: zabbix_host
+    server_url: "{{ zabbix_url }}"
+    login_user: "{{ zabbix_username }}"
+    login_password: "{{ zabbix_password }}"
+    host_name: "{{ ansible_hostname }}"
+#    proxy: "{{ client_code }}-{{ env_type }}-PROXY"
+    host_groups:
+      - "{{ app_type }} - {{ client }}"
+    link_templates:
+      - "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "{{ zabbix_template }}"
+    status: enabled
+    state: present
+    inventory_mode: automatic
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+#        ip: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+        ip: "{{ inventory_hostname }}"
+        dns: ""
+        port: 10050
+  tags:
+    - zabbix-add-host
+
+- name: "Updating Web and Admin servers in Zabbix -- tags: zabbix-add-host"
+  local_action:
+    module: zabbix_host
+    server_url: "{{ zabbix_url }}"
+    login_user: "{{ zabbix_username }}"
+    login_password: "{{ zabbix_password }}"
+    host_name: "{{ ansible_hostname }}"
+#    proxy: "{{ client_code }}-{{ env_type }}-PROXY"
+    host_groups:
+      - "{{ app_type }} - {{ client }}"
+    link_templates:
+      - "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "{{ zabbix_template }}"
+      - Magento Application
+    status: enabled
+    state: present
+    inventory_mode: automatic
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+#        ip: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+        ip: "{{ inventory_hostname }}"
+        dns: ""
+        port: 10050
+  when: inventory_hostname in groups['WEB'] or inventory_hostname in groups['ADM']
+  tags:
+    - zabbix-add-host
+
+- name: "Updating Lsync Primary -- tags: zabbix-add-host"
+  local_action:
+    module: zabbix_host
+    server_url: "{{ zabbix_url }}"
+    login_user: "{{ zabbix_username }}"
+    login_password: "{{ zabbix_password }}"
+    host_name: "{{ ansible_hostname }}"
+#    proxy: "{{ client_code }}-{{ env_type }}-PROXY"
+    host_groups:
+      - "{{ app_type }} - {{ client }}"
+    link_templates:
+      - "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+      - "{{ zabbix_template }}"
+      - Lsync Service
+    status: enabled
+    state: present
+    inventory_mode: automatic
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+#        ip: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+        ip: "{{ inventory_hostname }}"
+        dns: ""
+        port: 10050
+  when: lsync is defined and lsync | match('master')
+  tags:
+    - zabbix-add-host

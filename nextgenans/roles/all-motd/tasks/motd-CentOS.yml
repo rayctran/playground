@@ -1,0 +1,12 @@
+---
+# all-motd/tasks/motd-CentOS.yml
+
+- name: "Setting MOTD -- tags: motd"
+  template:
+    src: "{{ ansible_distribution }}-server-identification.j2"
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - motd

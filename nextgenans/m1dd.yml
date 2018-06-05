@@ -1,0 +1,152 @@
+#!/usr/bin/env ansible-playbook
+---
+- hosts: M1DD:WEB:ADM
+  become: yes
+  gather_facts: no
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  role:
+    - ssh-management
+
+- hosts: M1DD
+  vars_files:
+    - vars.yml
+  gather_facts: no
+  tasks:
+  - name: "Missing deploy_repo variable"
+    fail: msg="Please add the variable deploy_repo in the M1DD:vars section"
+    when: deploy_repo is undefined
+
+- hosts: 127.0.0.1
+  connection: local
+  tasks:
+  - name: "Check to see if deploy user already exists -- tags: m1-deploy-user"
+    command: bash -c "/usr/bin/getent passwd deploy | wc -l"
+    register: deploy_user
+    tags:
+      - m1-deploy-user
+
+  - name: "Create deploy user -- tags: m1-deploy-user"
+    user:
+      name: deploy
+      uid: 1001
+      state: present
+#    delegate_to: localhost
+    when: deploy_user.stdout == "0"
+    tags:
+      - m1-deploy-user
+  
+  - name: "Generate temp rsa keys for local deploy user -- tags: m1-deploy-user"
+    user:
+      name: deploy
+      generate_ssh_key: yes
+      ssh_key_bits: 2048
+      ssh_key_file: .ssh/id_rsa
+    when: deploy_user.stdout == "0"
+#    delegate_to: localhost
+    tags:
+      - m1-deploy-user
+  
+  - name: "Get Deploy's Public Key -- tags: m1-deploy-user"
+    shell: cat "/home/deploy/.ssh/id_rsa.pub"
+    register: id_rsa_pub
+#    delegate_to: localhost
+    tags:
+      - m1-deploy-user
+  
+  - name: "Public Key info -- tags: m1-deploy-user"
+    debug:
+       msg: "Deploy User's Public Key Is {{ id_rsa_pub.stdout}}"
+    tags:
+      - m1-deploy-user
+  
+  # promp the user to press return to give them time to copy the key
+  - name: "Waiting for Confirmation to continue -- tags: m1-deploy-user"
+    pause: prompt="Please copy the deploy's user public key to Bitbucket. Press enter to continue"
+  
+- hosts: M1DD
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-apache-install
+    - multi-lcgosc-cert
+    - m1-deploy-server
+
+- hosts: WEB:ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - m1-deploy-client
+  
+- hosts: M1DD
+  vars_files:
+    - vars.yml
+  gather_facts: no
+  become: yes
+  become_user: deploy
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - m1-deploy-preprep
+  
+- hosts: M1DD
+  vars_files:
+    - vars.yml
+  gather_facts: no
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - m1-deploy-fixacl
+      
+- hosts: WEB:ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - m1-deploy-fixacl
+
+# Clean up local deploy's user ssh keys
+- hosts: 127.0.0.1
+  connection: local
+  tasks:
+  - name: "Check to see if deploy user already exists -- tags: m1-deploy-user"
+    command: bash -c "/usr/bin/getent passwd deploy | wc -l"
+    register: deploy_user
+#    delegate_to: localhost
+    tags:
+      - m1-deploy-user
+
+  - name: "Delete deploy user -- tags: m1-deploy-user"
+    user:
+      name: deploy
+      uid: 1001
+      state: absent
+      remove: yes
+    when: deploy_user.stdout == "1"
+    tags:
+      - m1-deploy-user
+
+  - name: "Delete deploy user's home -- tags: m1-deploy-user"
+    file:
+      path: /home/deploy
+      state: absent
+    when: deploy_user.stdout == "1"
+    tags:
+      - m1-deploy-user

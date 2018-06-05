@@ -1,0 +1,6 @@
+# This file is managed by Ansible.
+# Any manual changes may be overwritten at any time.
+
+# Members of the Lyons Application Hosting group may elevate privileges. This is for all boxes.
+%LyonsCG_Ah ALL=(ALL:ALL) ALL
+%LyonsCG_Ah_ReadAccess ALL=(root) /bin/cat *,/bin/ls *,/usr/bin/tail *

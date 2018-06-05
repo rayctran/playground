@@ -1,0 +1,64 @@
+#!/usr/bin/perl
+#
+# checkload.pl - Check system load and restart apache if over a defined threshold.
+# Install path: /usr/local/bin/checkload.pl
+#
+#### SETUP: ####
+#
+# 1. change $threshold to a system-specific threshold value.
+# 2. create directory /root/checkload
+# 3. touch /root/checkload/checkifrun
+# 4. Execute this script once manually. This will populate /root/checkload/checkifrun
+#    with a blank line and the word "false"
+# 5. Insert the "Time:" value (e.g. 1360785181) into the blank line in
+#    /root/checkload/checkifrun, so the file looks like this:
+#    1360784807
+#    false
+# 6. Touch /var/log/checkload.log
+# 7. Add crontab entry as below:
+#    * * * * * /usr/bin/perl /usr/local/bin/checkload.pl >> /var/log/checkload.log 2>&1
+#################
+
+### Change the below variable to a system-specific load average
+my $threshold = 50;
+
+open(FILE, "/root/checkload/checkifrun");
+@input = <FILE>;
+close(FILE);
+
+open(OUTFILE, ">/root/checkload/checkifrun");
+
+$hasRun = pop(@input);
+chomp($hasRun);
+
+$output = `uptime`;
+chomp($output);
+
+@lines = split( ' ', $output );
+
+print $lines[0];
+print @lines . "\n";
+
+$time = `date +%s`;
+chomp($time);
+
+$intime = $input[0];
+chomp($intime);
+
+$fifteen = pop(@lines);
+$five = pop(@lines);
+$one = pop(@lines);
+
+print "One:$one Five:$five Fifteen:$fifteen\n";
+print "Time:$time Intime:$intime HasRun:$hasRun\n";
+
+if( $one > $threshold && $hasRun == "false") {
+	print OUTFILE $time . "\n";
+	system("/usr/sbin/service apache2 stop;for i in `ipcs -s | awk '/apache/ {print $2}'`; do (ipcrm -s $i); done;/sbin/swapoff -a; /sbin/swapon -a;/usr/sbin/service apache2 start");
+	print OUTFILE "true\n";
+}
+else {
+	print OUTFILE $intime . "\n";
+	print OUTFILE "false\n"; 
+}
+close (OUTFILE);

@@ -1,0 +1,30 @@
+---
+# tasks file for LYONSCG.docker
+
+- name: "Add official Docker Xenial repository key -- tags: docker"
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    id: 0EBFCD88
+    state: present
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - docker
+
+- name: "Add official Docker Xenial repository to Apt -- tags: docker"
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    filename: docker
+    update_cache: yes
+    state: present
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - docker
+
+- name: "Installing Docker CE -- tags: docker"
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+    name: docker-ce
+    state: present
+  tags:
+    - docker

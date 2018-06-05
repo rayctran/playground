@@ -1,0 +1,7 @@
+---
+# defaults file for LYONSCG.bacula
+mysql_backup_target: no
+stripped_db_dump_target: no
+stripped_db_restore_frequency: weekly
+stripped_db_restore_day: 1
+stripped_db_restore_time: 8

@@ -1,0 +1,64 @@
+---
+# ci-jenkins/tasks/main.yml
+- name: "Adding Jenkins repository key"
+  apt_key:
+    url: http://pkg.jenkins-ci.org/debian-stable/jenkins-ci.org.key
+    state: present
+
+- name: "Adding Jenkins repository list"
+  apt_repository:
+    repo: 'deb http://pkg.jenkins-ci.org/debian-stable binary/'
+    state: present
+
+- name: "Installing Jenkins and common components"
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+  with_items:
+     - git
+     - ant
+     - jenkins
+
+- name: "Creating Jenkins user SSH keypair"
+  user:
+    name: jenkins
+    generate_ssh_key: yes
+
+# We'll revisit these later.
+#- name: "Installing Jenkins plugins"
+#  command: java -jar /var/cache/jenkins/war/WEB-INF/jenkins-cli.jar -s http://localhost:8080 install-plugin {{ item }}
+#  with_items:
+#    - active-directory
+#    - bitbucket
+#    - checkstyle
+#    - cloverphp
+#    - crap4j
+#    - dry
+#    - gitlab-plugin
+#    - htmlpublisher
+#    - jdepend
+#    - mailer
+#    - plot
+#    - pmd
+#    - violations
+#    - warnings
+#    - workflow-aggregator
+#    - workflow-multibranch
+#    - xunit
+#  register: plugin_results
+#  changed_when: False
+#  failed_when: "'Exception' in plugin_results.stderr"
+
+#- name: "Restarting Jenkins so plugins are enabled"
+#  uri:
+#    url: http://localhost:8080/restart
+#    status: 200
+
+#- name: "Configuring Jenkins Active Directory plugin"
+#
+#- name: "Reloading Jenkins configuration"
+#  uri:
+#    url: http://localhost:8080/reload
+#    status: 200

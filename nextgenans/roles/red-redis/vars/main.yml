@@ -1,0 +1,3 @@
+---
+# red-redis/vars/main.yml
+redis_maxmemory: 768MB

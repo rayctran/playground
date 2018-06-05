@@ -1,0 +1,5 @@
+[client]
+user=zabbix
+password=Nn8y7m0PH8d4Mz8k
+port=3306
+socket=/var/lib/mysql/mysql.sock

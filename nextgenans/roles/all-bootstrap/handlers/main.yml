@@ -1,0 +1,43 @@
+---
+# all-bootstrap/handlers/main.yml
+- name: update timezone
+  command: dpkg-reconfigure --frontend noninteractive tzdata
+
+- name: enable openssh sshd
+  service:
+    name: sshd
+    state: started
+    enabled: yes
+  when: ansible_distribution == 'CentOS'
+
+- name: reload openssh sshd
+  service:
+    name: sshd
+    state: reloaded
+  when: ansible_distribution == 'CentOS'
+
+- name: enable openssh sshd
+  service:
+    name: sshd
+    state: started
+    enabled: yes
+  when: ansible_distribution_release == 'xenial'
+
+- name: reload openssh sshd
+  service:
+    name: sshd
+    state: reloaded
+  when: ansible_distribution_release == 'xenial'
+
+- name: enable openssh ssh
+  service:
+    name: ssh
+    state: started
+    enabled: yes
+  when: ansible_distribution_release == 'trusty'
+
+- name: reload openssh ssh
+  service:
+    name: ssh
+    state: reloaded
+  when: ansible_distribution_release == 'trusty'

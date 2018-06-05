@@ -1,0 +1,24 @@
+---
+# all-restart/tasks/main.yml
+
+- name: "Checking if the Ubuntu system needs to be restarted after updates -- tags: restart"
+  stat:
+    path: /var/run/reboot-required
+  register: restart_results
+  changed_when: restart_results.stat.exists == True
+  when: ansible_distribution == 'Ubuntu'
+  notify:
+    - Restarting SysVinit-based hosts
+    - Restarting Systemd-based hosts
+  tags:
+    - restart
+
+- name: "Checking if the CentOS system needs to be restarted after updates -- tags: restart"
+  shell: needs-restarting
+  register: restart_result
+  changed_when: restart_result.rc != '0'
+  when: ansible_distribution == 'CentOS'
+  notify:
+    - Restarting CentOS 6 hosts
+  tags:
+    - restart

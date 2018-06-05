@@ -1,0 +1,7 @@
+---
+# adm-php/tasks/main.yml
+- include: php5-6.yml
+  when: php == 5.6
+
+- include: php7.yml
+  when: php == 7

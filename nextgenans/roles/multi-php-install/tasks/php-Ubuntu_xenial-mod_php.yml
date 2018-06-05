@@ -1,0 +1,78 @@
+---
+# web-php/tasks/php-Ubuntu_xenial-mod_php.yml
+- name: "Installing PHP -- tags: php-install"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - libapache2-mod-php
+    - mysql-client
+    - php
+    - php-cli
+    - php-curl
+    - php-gd
+    - php-intl
+    - php-json
+    - php-mbstring
+    - php-mcrypt
+    - php-mysql
+    - php-pear
+    - php-soap
+    - php-xmlrpc
+    - php-zip
+    - php-bcmath
+  notify:
+    - restart apache
+  tags:
+    - php-install
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+- name: "Enabling Apache PHP module -- tags: php-install"
+#  apache2_module:
+#    name: php7.0
+#    state: present
+#    ignore_configcheck: yes
+#  notify:
+#    - restart apache
+  command: "/usr/sbin/a2enmod {{ item }}"
+  with_items:
+      - php7.0
+  notify:
+    - restart apache
+  tags:
+    - php-install
+
+- name: "Enabling PHP mcrypt module -- tags: php-install"
+  command: phpenmod mcrypt
+  notify:
+    - restart apache
+  tags:
+    - php-install
+
+- name: "Copying Apache php.ini"
+  copy:
+    src: php.ini
+    dest: /etc/php/7.0/apache2/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart apache
+  tags:
+    - php-install
+
+- name: "Copying CLI php.ini -- tags: php-install"
+  copy:
+    src: php.ini
+    dest: /etc/php/7.0/cli/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart apache
+  tags:
+    - php-install

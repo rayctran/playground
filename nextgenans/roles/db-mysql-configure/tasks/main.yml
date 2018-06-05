@@ -1,0 +1,91 @@
+---
+# db-mysql/tasks/main.yml
+- name: "Set MySQL root password before installing."
+  debconf:
+     name='mysql-server-5.6'
+     question='mysql-server/root_password'
+     value={{ mysql.root_password }}
+  debconf:
+     name='mysql-server-5.6'
+     question='mysql-server/root_password_again'
+     value={{ mysql.root_password }}
+     vtype='password'
+  tags:
+    - mysql-config
+
+- set_fact:
+    last_digit_hostname_work: |
+      {{ hostvars[inventory_hostname].hostname.split('-')[3] | map('regex_replace','^0','') | list}}
+  tags:
+    - mysql-config
+
+- set_fact:
+    server_id: {{ last_digit_hostname_work[1] }}
+  tags:
+    - mysql-config
+
+- name: "Installing MySQL packages."
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - mysql-client-5.6
+    - mysql-server-5.6
+    - mysqltuner
+    - percona-xtrabackup
+    - python-mysqldb
+  notify:
+    - restart mysql
+  tags:
+    - mysql-config
+
+- name: "Ensuring the MySQL service is stopped."
+  service:
+    name: mysql
+    state: stopped
+  tags:
+    - mysql-config
+
+- name: "Copying basic config file."
+  copy:
+    src: my.cnf
+    dest: /etc/mysql/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart mysql
+  tags:
+    - mysql-config
+
+- name: "Copying Lyons custom config file."
+  template:
+    src: lyonscg.cnf.j2
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart mysql
+  tags:
+    - mysql-config
+
+- name: "Removing ib_logfile(s) to ensure configuration files load."
+  file:
+    path: {{ item }}
+    state: absent
+  with_fileglob:
+    - /var/lib/mysql/ib_logfile*
+  tags:
+    - mysql-config
+
+- name: "Starting the MySQL service."
+  service:
+    name: mysql
+    state: started
+  tags:
+    - mysql-config

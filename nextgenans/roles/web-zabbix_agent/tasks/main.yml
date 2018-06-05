@@ -1,0 +1,69 @@
+---
+# web-zabbix_agent/tasks/main.yml
+
+- name: "Adding Scripts to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/scripts/
+    owner: zabbix
+    group: zabbix
+    mode: 0755
+    force: yes
+  with_fileglob:
+    - scripts/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding Conf files to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  with_fileglob:
+    - conf/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding Apache configuration for server-status on Ubuntu"
+  copy:
+    src: status.conf
+    dest: /etc/apache2/conf-available/status.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload apache2
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-agent
+
+- name: "Enabling server-status configuration file for Ubuntu."
+  command: /usr/sbin/a2enconf status
+  args:
+    creates: /etc/apache2/conf-enabled/status.conf
+  notify:
+    - reload apache2
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-agent
+
+- name: "Adding Apache configuration for server-status on CentOS"
+  copy:
+    src: status.conf
+    dest: /etc/httpd/conf.d/status.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload httpd
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - zabbix-agent
+

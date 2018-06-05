@@ -1,0 +1,26 @@
+vrrp_script chk_haproxy {
+  script "killall -0 haproxy" # Cheaper than pidof
+  interval 2                  # Check every 2 seconds
+  weight 2                    # Add 2 points of prio if OK
+  fall 2                      # Require 2 failures for OK
+  rise 2                      # Require 2 successes for OK
+}
+
+vrrp_instance VI_1 {
+    state MASTER              # On the primary node, start as master
+    interface <interface>
+    virtual_router_id <id_number>
+    priority <priority>
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass $ <32_character_password>
+    }
+    virtual_ipaddress {
+        <vip_address>
+    }
+
+  track_script {
+    chk_haproxy
+  }
+}

@@ -1,0 +1,53 @@
+---
+# web-php/tasks/php-Ubuntu_xenial-mod_php.yml
+- name: "Installing PHP"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - libapache2-mod-php
+    - php-pear
+    - php-soap
+    - php-cli
+    - php-common
+    - php-gd
+    - php-ldap
+    - php-mcrypt
+    - php-mysql
+    - php-xmlrpc
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+- name: "Enabling Apache PHP module"
+  command: "/usr/sbin/a2enmod {{ item }}"
+  with_items:
+      - access_compat
+      - alias
+      - auth_basic
+      - authn_core
+      - authn_file
+      - authnz_ldap
+      - authz_core
+      - authz_host
+      - authz_user
+      - autoindex
+      - deflate
+      - dir
+      - env
+      - filter
+      - headers
+      - ldap
+      - mime
+      - mpm_prefork
+      - negotiation
+      - rewrite
+      - setenvif
+      - socache_shmcb
+      - ssl
+      - status
+  notify:
+    - restart apache
+

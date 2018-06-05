@@ -1,0 +1,70 @@
+---
+# web-lsyncd/tasks/main.yml
+## ALL
+- name: install npm
+  apt:  pkg=npm state=present update_cache=yes
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+## SERVER
+- debug: msg="System Host Name {{ ansible_default_ipv4.address }} == {{ groups['ADM'][0] }}"
+  ignore_errors: yes
+  when: debug == true and groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+- name: "Install Lsyncd Server"
+  apt: name=lsyncd state=present update_cache=yes
+  notify: Restart Lsyncd
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+# Set fs.inotify.max_user_watches to 250000 in sysctl
+- sysctl: name=fs.inotify.max_user_watches value=250000 state=present reload=yes
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+# Copy lsync logrotate into place
+- copy: src=lsyncd dest=/etc/logrotate.d/lsyncd owner=root group=root mode=644
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+# Copy Template Into Place
+- template: src=lsyncd_server.j2 dest=/etc/lsyncd.lua 
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+- name: "Copy lsync.exclude"
+  copy: src="lsync.exclude.txt" dest="/etc/lsync.exclude" owner=root group=root mode=644
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+- name: "Update the /etc/init.d/lsynd file"
+  replace: dest=/etc/init.d/lsyncd
+           regexp="[^#]CONFIG=/etc/lsyncd/lsyncd.conf.lua" 
+           replace="CONFIG=/etc/lsyncd.lua"
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+
+- name: "Restart Lsyncd"
+  service: name=lsyncd state=restarted
+  when: groups['ADM'][0] is defined and ansible_default_ipv4.address == groups['ADM'][0]
+  
+
+## SLAVE  
+## 
+- name: "Install Lsync Client xinetd"
+  apt: name=xinetd state=present update_cache=yes
+  notify: Restart xinetd
+  when: ansible_default_ipv4.address in groups['WEB']
+  
+- name: 'Open tcp Port 873'
+  ufw: rule=allow port=873 proto=tcp
+  when: ansible_default_ipv4.address in groups['WEB']
+  
+- name: 'Open udp Port 873'
+  ufw: rule=allow port=873 proto=udp
+  when: ansible_default_ipv4.address in groups['WEB']
+  
+# Copy Template Into Place
+- template: src=lsyncd_client.j2 dest=/etc/rsyncd.conf
+  when: ansible_default_ipv4.address in groups['WEB']
+
+- name: "Copy rsync"
+  copy: src="rsync.txt" dest="/etc/xinetd.d/rsync" owner=root group=root mode=644
+  when: ansible_default_ipv4.address in groups['WEB']
+  
+- name: "Restart xinetd"
+  service: name=xinetd state=restarted
+  when: ansible_default_ipv4.address in groups['WEB']

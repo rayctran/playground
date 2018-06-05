@@ -1,0 +1,179 @@
+---
+# db-mysql-install/tasks/main.yml
+- name: "Check if MySQL is already installed -- tags: mysql-install"
+  shell: dpkg -s mysql-server | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  tags:
+    - mysql-install
+
+- debug:
+    msg: " MySQL is already installed. Skipping MySQL installation... -- tags: mysql-install"
+  when: is_installed.rc == 0
+  tags:
+    - mysql-db-config
+
+- meta: end_play
+  when: is_installed.rc == 0
+  tags:
+    - mysql-db-config
+
+- name: "Set MySQL root password before installing -- tags: mysql-install"
+  debconf:
+     name: 'mysql-server'
+     question: 'mysql-server/root_password'
+     value: "{{mysql_root_password | quote}}"
+     vtype: 'password'
+  when: is_installed.rc != 0
+  tags:
+    - mysql-install
+
+- name: "Set MySQL root password again before installing -- tags: mysql-install"
+  debconf:
+     name: 'mysql-server'
+     question: 'mysql-server/root_password_again'
+     value: "{{mysql_root_password | quote}}"
+     vtype: 'password'
+  when: is_installed.rc != 0
+  tags:
+    - mysql-install
+
+- name: "Installing MySQL packages -- tags: mysql-install"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - mysql-client-5.6
+    - mysql-server-5.6
+    - mysqltuner
+    - percona-xtrabackup
+    - python-mysqldb
+  notify:
+    - start mysql
+#    - stop mysql
+    - delete anonymous
+    - remove test database
+    - secure root user
+  tags:
+    - mysql-install
+
+#- name: delete anonymous
+#  mysql_user:
+#    user: ''
+#    state: absent
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#
+#- name: remove test database
+#  mysql_db:
+#    db: test
+#    state: absent
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#
+#- name: secure root user
+#  mysql_user:
+#    user: "root"
+#    password: "{{ mysql_root_password }}"
+#    host: "{{ item }}"
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#  with_items:
+#     - 127.0.0.1
+#     - localhost
+#
+- name: "Copying my-default.cnf file -- tags: mysql-install"
+  copy:
+    src: /usr/share/doc/mysql-server-5.6/examples/my-default.cnf
+    dest: /usr/share/mysql/my-default.cnf
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: yes
+  tags:
+    - mysql-install
+
+- name: Remove my.cnf
+  file:
+    path: /etc/mysql/my.cnf
+    state: absent
+  tags:
+    - mysql-install
+
+- name: "Re-initialize the database -- tags: mysql-install"
+  file:
+    path: /var/lib/mysql/
+    state: absent
+  tags:
+    - mysql-install
+
+- name: "Recreating the database information -- tags: mysql-install"
+  command: /usr/bin/mysql_install_db
+  tags:
+    - mysql-install
+
+- name: "Copying basic config file -- tags: mysql-install"
+  copy:
+    src: my56.cnf
+    dest: /etc/mysql/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - mysql-install
+
+- name: "Copying basic version of the Lyons custom config file for server with replication on -- tags: mysql-install"
+  template:
+    src: lyonscg-Ubuntu_trusty.cnf.j2
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  when: mysql_repl_role is defined
+  tags:
+    - mysql-install
+
+- name: "Copying basic version of the Lyons custom config file for server with no replication -- tags: mysql-install"
+  template:
+    src: lyonscg-Ubuntu_trusty-nobinlog.cnf.j2
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  when: mysql_repl_role is undefined
+  notify:
+    - start mysql
+  tags:
+    - mysql-install
+
+# 9/22/2017 - Relocate MySQL data directory to /data/mysql
+
+#- name: "Get information about /var/lib/mysql -- tags: mysql-install"
+#  stat:
+#    path: /var/lib/mysql
+#  register: mysql_dir
+#  tags:
+#    - mysql-install
+#
+#- debug:
+#    msg: "/var/lib/mysql exists and is a symlink"
+#  when: mysql_dir.stat.islnk is defined and mysql_dir.stat.islnk
+#  tags:
+#    - mysql-install
+#
+#- debug:
+#    msg: "/var/lib/mysql exists and isn't a symlink"
+#  when: mysql_dir.stat.islnk is defined and mysql_dir.stat.islnk == False
+#  tags:
+#    - mysql-install
+#
+#- name: Initiate /var/lib/mysql relocation tasks and stopping mysql
+#  include: mysql-dir-relo.yml
+#  when: mysql_dir.stat.islnk is defined and mysql_dir.stat.islnk == False
+#  tags:
+#   - mysql-install

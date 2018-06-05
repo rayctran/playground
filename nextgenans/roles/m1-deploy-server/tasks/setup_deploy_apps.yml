@@ -1,0 +1,278 @@
+---
+# m1-depoy-server/tasks/setup_deploy_apps.yml
+# Set up deployment applications
+
+- name: "Installing Ruby -- tags: m1-deploy-server"
+  apt:
+    name: ruby
+    state: present
+    update_cache: yes
+  tags:
+    - m1-deploy-server
+
+- name: "Gem install bundler -- tags: m1-deploy-server"
+#  gem:
+#    name: bundler
+#    version: 1.9.3
+#    state: present
+  command: "gem install bundler -v 1.9.8 -- tags: m1-deploy-server"
+  notify:
+    - restart apache
+  tags:
+    - m1-deploy-server
+
+- name: "Downloading magerun -- tags: m1-deploy-server"
+  get_url:
+    url: https://files.magerun.net/n98-magerun.phar
+    dest: /usr/local/bin/n98-magerun.phar
+    validate_certs: no
+  tags:
+    - m1-deploy-server
+
+- name: "Set Permission For magerun -- tags: m1-deploy-server"
+  file:
+    path: /usr/local/bin/n98-magerun.phar
+    mode: 755
+  tags:
+    - m1-deploy-server
+
+- name: "Set Up capdeploy directory -- tags: m1-deploy-server"
+  file:
+    path: /var/www/capdeploy
+    state: directory
+    mode: 0755
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-server
+
+- name: "Setting Up Sudoers Permission -- tags: m1-deploy-server"
+  copy:
+    src: 02-dashboard
+    dest: /etc/sudoers.d/02-dashboard
+    owner: root
+    group: root
+    mode: 0440
+  tags:
+    - m1-deploy-server
+
+- name: "Set Up Web Area .ssh directory -- tags: m1-deploy-server"
+  file:
+    path: /var/www/.ssh
+    state: directory
+    mode: 0700
+    owner: www-data
+    group: www-data
+    recurse: yes
+  tags:
+    - m1-deploy-server
+
+- name: "Set ACL -- tags: m1-deploy-server"
+  acl:
+    path: /var/www
+    entity: deploy
+    etype: user
+    permissions: rwx
+    state: present
+    recursive: yes
+  tags:
+    - m1-deploy-server
+
+- name: "Copy rsa keys from the local deploy user to the remote server -- tags: m1-deploy-server"
+  copy:
+    src: /home/deploy/.ssh/id_rsa
+    dest: /var/www/.ssh/id_rsa
+    mode: 0600
+    owner: www-data
+    group: www-data
+  tags:
+    - m1-deploy-server
+
+- name: "Copy rsa public keys -- tags: m1-deploy-server"
+  copy:
+    src: /home/deploy/.ssh/id_rsa.pub
+    dest: /var/www/.ssh/id_rsa.pub
+    mode: 0644
+    owner: www-data
+    group: www-data
+  tags:
+    - m1-deploy-server
+
+- name: "Setup deploy user authorized key -- tags: m1-deploy-server"
+  copy:
+    src: /home/deploy/.ssh/id_rsa.pub
+    dest: /var/www/.ssh/authorized_keys
+    mode: 0644
+    owner: www-data
+    group: www-data
+  tags:
+    - m1-deploy-server
+
+#Cheating by adding signature of bitbucket
+- name: "Setup deploy user known_hosts -- tags: m1-deploy-server"
+  copy:
+    src: known_hosts
+    dest: /var/www/.ssh/known_hosts
+    mode: 0644
+    owner: www-data
+    group: www-data
+  tags:
+    - m1-deploy-server
+
+- name: "Checkout capapp repo -- tags: m1-deploy-server"
+  git: 
+    repo: git@bitbucket.org:lyonsconsultinggroup/magento-cap-application.git 
+    version: 1.1.15
+    dest: /var/www/capapp
+    accept_hostkey: yes
+  become_user: deploy
+#  sudo: yes
+#  sudo_user: deploy
+  tags:
+    - m1-deploy-server
+
+- name: "Copying setting.php -- tags: m1-deploy-server"
+  copy: 
+    src: /var/www/capapp/includes/settings.php.example
+    dest: /var/www/capapp/includes/settings.php
+    owner: deploy
+    group: deploy
+    mode: 0644
+    remote_src: yes
+  tags:
+    - m1-deploy-server
+
+- name: "Adding generic Vhosts file -- tags: m1-deploy-server"
+  template:
+    src: capapp.conf.j2
+    dest: /etc/apache2/sites-available/capapp.conf
+  notify:
+    - restart apache
+  tags:
+    - m1-deploy-server
+
+- name: "Enabling generic Vhosts file -- tags: m1-deploy-server"
+  shell: /usr/sbin/a2ensite capapp
+  args:
+    creates: /etc/apache2/sites-enabled/capapp.conf
+  notify:
+    - restart apache
+  tags:
+    - m1-deploy-server
+
+- name: "Install passlib required to set up htpasswd -- tags: m1-deploy-server"
+  apt:
+    pkg: python-passlib 
+    state: installed 
+  tags:
+    - m1-deploy-server
+
+- name: "Set lcgdeploy password -- tags: m1-deploy-server"
+  htpasswd:
+    path: /var/www/passwords
+    name: lcgdeploy
+    password: lyonscg2014
+    crypt_scheme: md5_crypt
+  notify:
+    - restart apache
+  tags:
+    - m1-deploy-server
+
+- name: "checkout cap-deploy repo -- tags: m1-deploy-server"
+  git: 
+    repo: git@bitbucket.org:lyonsconsultinggroup/magento-cap-deploy.git 
+    version: 0.2.0 
+    dest: /var/www/capdeploy
+    accept_hostkey: yes
+  become_user: deploy
+#  sudo: yes
+#  sudo_user: deploy
+  tags:
+    - m1-deploy-server
+
+- name: "Force www directory permission -- tags: m1-deploy-server"
+  file:
+    path: /var/www
+    state: directory
+    owner: www-data 
+    group: www-data 
+  tags:
+    - m1-deploy-server
+
+- name: "Install Bundle Ruby Gem as deploy -- tags: m1-deploy-server"
+  become: true
+  become_user: deploy
+  command: bundle install
+  args:
+    chdir: "/var/www/capdeploy"
+  tags:
+    - m1-deploy-server
+
+- name: "Install Bundle Ruby Gem as www-data -- tags: m1-deploy-server"
+  become: true
+  become_user: www-data
+  command: bundle install
+  args:
+    chdir: "/var/www/capdeploy"
+  tags:
+    - m1-deploy-server
+
+- name: "Creating symlink for bundle -- tags: m1-deploy-server"
+  file:
+    src: /usr/local/bin/bundle
+    dest: /usr/bin/bundle
+    state: link
+  tags:
+    - m1-deploy-server
+
+#- name: "Prep deploy.rb file -- tags: m1-deploy-server"
+#  copy:
+#    src: /var/www/capdeploy/config/deploy.rb.example
+#    dest: /var/www/capdeploy/config/deploy.rb
+#    owner: deploy
+#    group: deploy
+#    remote_src: yes
+#  tags:
+#    - m1-deploy-server
+
+- name: "Copying deploy.rb file -- tags: m1-deploy-server"
+  template:
+    src: deploy_{{ env_type }}.rb.j2
+    dest: /var/www/capdeploy/config/deploy.rb
+    owner: deploy
+    group: deploy
+  when: env_type | match('STG|PRD')
+  tags:
+    - m1-deploy-server
+
+- name: "Add app line in deploy.rb -- tags: m1-deploy-server"
+  lineinfile:
+    path: /var/www/capdeploy/config/deploy.rb
+#    regexp: '^#role :app'
+    line: "role :app, \'{{ inventory_hostname }}\'"
+    insertafter: '^#role :app'
+  tags:
+    - m1-deploy-server
+
+- name: "Initial set up of the emails.php file -- tags: m1-deploy-server"
+  copy:
+    src: emails.php
+    dest: /var/www/capapp/emails.php
+    owner: deploy
+    group: deploy
+    mode: 0644
+  when: env_type | match('STG|PRD')
+  tags:
+    - m1-deploy-server
+
+- name: "Updating settings.php -- tags: m1-deploy-server"
+  copy:
+    src: settings.php
+    dest: /var/www/capapp/includes/settings.php
+    owner: deploy
+    group: deploy
+    mode: 0644
+  tags:
+    - m1-deploy-server
+
+

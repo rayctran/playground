@@ -1,0 +1,127 @@
+---
+# multi-apache/tasks/multi-apache-CentOS.yml
+- name: "Installing Apache and associated packages -- tags: apache"
+  yum:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - mod_ssl
+    - mod_authz_ldap
+    - httpd
+    - git
+    - acl
+  notify:
+    - restart httpd
+  tags:
+    - apache
+
+- name: "Copying base Apache configuration -- tags: apache"
+  copy:
+    src: "{{ ansible_distribution }}-httpd.conf"
+    dest: /etc/httpd/conf/httpd.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - apache
+
+- name: "Copying static Apache configurations -- tags: apache"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/httpd/conf.d/
+    force: yes
+    backup: no
+  with_items:
+    - "{{ ansible_distribution }}-status.conf"
+    - ssl_offloading.conf
+    - blockgit.conf
+    - "{{ ansible_distribution }}-expires.conf"
+    - "{{ ansible_distribution }}-deflate.conf"
+  notify:
+    - restart httpd
+  tags:
+    - apache
+
+- name: "Adding ops.conf -- tags: apache"
+  template:
+    src: ops.conf.j2
+    dest: /etc/httpd/conf.d/ops.conf
+    force: yes
+    backup: no
+  notify:
+    - restart httpd
+  tags:
+    - apache
+
+- name: "Deleting welcome site conf file -- tags: apache"
+  file:
+    path: /etc/httpd/conf.d/welcome.conf
+    state: absent
+  notify:
+    - restart httpd
+  tags:
+    - apache
+
+- name: "Set vhost name -- tags: apache"
+  set_fact:
+    vhost_name : "{{ client_code | lower }}-{{ app_type | lower }}-{{ env_type | lower }}"
+  tags:
+    - apache
+
+- name: "Adding base vhost configuration -- tags: apache"
+  template:
+    src: "{{ ansible_distribution }}-lcgosc.com.conf.j2"
+#    dest: "/etc/httpd/conf.d/{{ client_code }}-{{ app_type }}-{{ env_type }}.lcgosc.com.conf"
+    dest: "/etc/httpd/conf.d/{{ vhost_name }}-{{ env_type | lower}}.lcgosc.com.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - apache
+
+- name: Modify running iptables for HTTP
+  iptables:
+    action: insert
+    chain: INPUT
+    ctstate: NEW
+    protocol: tcp
+    destination_port: 80
+    jump: ACCEPT
+  tags:
+    - apache
+
+- name: Modify saved iptables for HTTP
+  lineinfile:
+    dest: /etc/sysconfig/iptables
+    backup: yes
+    state: present
+    insertbefore: '^-A INPUT -j REJECT --reject-with icmp-host-prohibited'
+    line: '-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT'
+  tags:
+    - apache
+
+- name: Modify running iptables for HTTPS
+  iptables:
+    action: insert
+    chain: INPUT
+    ctstate: NEW
+    protocol: tcp
+    destination_port: 443
+    jump: ACCEPT
+  tags:
+    - apache
+
+- name: Modify saved iptables for HTTPS
+  lineinfile:
+    dest: /etc/sysconfig/iptables
+    backup: yes
+    state: present
+    insertbefore: '^-A INPUT -j REJECT --reject-with icmp-host-prohibited'
+    line: '-A INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT'
+  tags:
+    - apache

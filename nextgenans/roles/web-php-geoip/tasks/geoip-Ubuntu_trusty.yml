@@ -1,0 +1,41 @@
+---
+# web-php/tasks/php-Ubuntu_trusty-PHP-FPM.yml
+- name: "Installing GeoIP Related packages -- tags: geoip"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - php5-geoip
+    - geoip-database-contrib
+  when: php_processor == 'PHP-FPM' 
+  tags:
+    - geoip
+
+- name: "Enabling PHP geoip module -- tags: geoip"
+  command: php5enmod geoip
+  notify:
+    - restart php5-fpm
+    - restart apache
+  when: php_processor == 'PHP-FPM' 
+  tags:
+    - geoip
+
+- name: "Enabling PHP geoip module -- tags: geoip"
+  command: php5enmod geoip
+  when: php_processor == 'mod_php'
+  tags:
+    - geoip
+
+- name: "Set weekly cron job for GeoIP updates -- tags: geoip"
+  cron:
+    name: Weekly GeoIP database update
+    job: /usr/sbin/geoip-database-contrib_update >/dev/null 2>&1
+    user: root
+    special_time: weekly
+    state: present
+  tags:
+    - geoip

@@ -1,0 +1,9 @@
+#########################################################################################
+### This file is managed by Ansible and local changes may be overwritten at any time! ###
+#########################################################################################
+
+Job {
+  Name = "{{ ansible_hostname }}"
+  JobDefs = "{{ bacula_backup_schedule }}-mysql-db"
+  Client = "{{ ansible_hostname }}"
+}

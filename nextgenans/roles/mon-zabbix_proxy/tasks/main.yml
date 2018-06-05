@@ -1,0 +1,170 @@
+---
+# mon-zabiix-proxy/tasks/main.yml
+- name: "Get the variables from an existing file -- tags: zabbix-proxy"
+  include_vars: "/usr/local/ansible/mysql/{{ client_code }}_mysql_creds.yml"
+  tags:
+    - zabbix-proxy
+
+- name: "Set Zabbix server for PRD -- tags: zabbix-proxy"
+  set_fact:
+    zabbix_server: "{{ prd_zabbix_server }}"
+  when: env_type | match("PRD")
+  tags:
+    - zabbix-proxy
+
+- name: "Set Zabbix server for STG -- tags: zabbix-proxy"
+  set_fact:
+    zabbix_server: "{{ stg_zabbix_server }}"
+  when: env_type | match("STG")
+  tags:
+    - zabbix-proxy
+
+- name: "Set Zabbix Proxy server for PRD -- tags: zabbix-proxy"
+  set_fact:
+    zabbix_proxy_server: "{{ prd_zabbix_proxy_server }}"
+  when: env_type | match("PRD")
+  tags:
+    - zabbix-proxy
+
+- name: "Set Zabbix server for STG -- tags: zabbix-proxy"
+  set_fact:
+    zabbix_proxy_server: "{{ stg_zabbix_proxy_server }}"
+  when: env_type | match("STG")
+  tags:
+    - zabbix-proxy
+
+- name: "Downloading Zabbix repository package -- tags: zabbix-proxy"
+  get_url:
+    url: http://repo.zabbix.com/zabbix/3.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_3.0-1+{{ ansible_distribution_release }}_all.deb
+    dest: /tmp/zabbix-repository.deb
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-proxy
+
+- name: "Installing Zabbix repository package -- tags: zabbix-proxy"
+  apt:
+    deb: /tmp/zabbix-repository.deb
+    state: present
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-proxy
+
+- name: "Installing Zabbix pacakges from repository -- tags: zabbix-proxy"
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items:
+    - python-mysqldb
+    - sysstat
+    - fping
+    - zabbix-proxy-mysql
+  notify:
+    - restart zabbix-proxy
+  tags:
+    - zabbix-proxy
+
+- name: "Adding the Zabbix user to MySQL -- tags: zabbix-proxy"
+  mysql_user:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: zabbix
+    password: Nn8y7m0PH8d4Mz8k
+    priv: '*.*:ALL'
+    state: present
+  tags:
+    - zabbix-proxy
+
+- name: "Creating Zabbix Proxy MySQL Database -- tags: zabbix-proxy"
+  mysql_db:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: zabbix
+    state: present
+  register: zabbix_db
+  tags:
+    - zabbix-proxy
+
+- name: "Create The Zabbix Proxy Database Schema -- tags: zabbix-proxy"
+  command: bash -c '/bin/zcat /usr/share/doc/zabbix-proxy-mysql/schema.sql.gz | mysql -uroot -p{{ mysql_root_password }} zabbix'
+  when: zabbix_db.changed
+  tags:
+    - zabbix-proxy
+
+- name: "Create PSK file -- tags: zabbix-proxy"
+  command: bash -c "openssl rand -hex 32 > /etc/zabbix/zabbix_proxy.psk"
+  args:
+    creates: /etc/zabbix/zabbix_proxy.psk
+  tags:
+    - zabbix-proxy
+
+- name: "Setting PSK file permision -- tags: zabbix-proxy"
+  file:
+    path: /etc/zabbix/zabbix_proxy.psk
+    mode: 0400  
+    owner: zabbix
+    group: zabbix
+  tags:
+    - zabbix-proxy
+
+- name: "Configuring Zabbix Proxy -- tags: zabbix-proxy"
+  template:
+    src: zabbix_proxy.conf.j2
+    dest: /etc/zabbix/zabbix_proxy.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify:
+    - restart zabbix-proxy
+  tags:
+    - zabbix-proxy
+
+- name: "Creating symlink for fping -- tags: zabbix-proxy"
+  file:
+    src: /usr/bin/{{ item }}
+    dest: /usr/sbin/{{ item }}
+    state: link
+  with_items:
+    - fping
+    - fping6
+  tags:
+    - zabbix-proxy
+
+- name: "Adding MySQL client credentials for Zabbix Agent -- tags: zabbix-proxy"
+  copy:
+    src: "my.cnf.{{ansible_distribution}}"
+    dest: /etc/zabbix/.my.cnf
+    owner: zabbix
+    group: zabbix
+    mode: 0600
+    force: yes
+  notify:
+    - restart zabbix-proxy
+  tags:
+    - zabbix-proxy
+
+- name: "Adding Conf files to Zabbix Agent -- tags: zabbix-proxy"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  with_fileglob:
+    - conf/*
+  notify:
+    - restart zabbix-proxy
+  tags:
+    - zabbix-proxy
+
+- name: "Remove bogus mysql file -- tags: zabbix-proxy"
+  file: 
+    path: /etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf.dpkg-dist
+    state: absent
+  tags:
+    - zabbix-proxy

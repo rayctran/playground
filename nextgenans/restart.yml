@@ -1,0 +1,29 @@
+---
+- hosts: all
+  vars_files:
+    - vars.yml
+  remote_user: osc
+  gather_facts: yes
+  become: yes
+  become_method: sudo
+  become_user: root
+  tasks:
+  - name: "Restarting hosts to load new kernel"
+    shell: sleep 2 && /sbin/shutdown -r now "Restarting host for package updates."
+    async: 1
+    poll: 0
+    ignore_errors: true
+    register: result
+    notify:
+      - wait for hosts
+
+  - name: debugging thing
+    debug:
+      var: result
+
+  handlers:
+  - name: wait for hosts
+    local_action: wait_for host={{ inventory_hostname }} port=22 state=started delay=30 timeout=1800 connect_timeout=15
+    become: false
+    ignore_errors: true
+    changed_when: false

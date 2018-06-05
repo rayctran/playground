@@ -1,0 +1,10 @@
+---
+# adm-postfix/handlers/main.yml
+- name: restart postifx
+  service:
+    name: postfix
+    state: restarted
+
+- name: set postmap
+  shell: postmap /etc/postfix/generic
+  changed_when: false

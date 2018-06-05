@@ -1,0 +1,272 @@
+---
+# multi-apache/tasks/multi-apache-Ubuntu.yml
+- name: "Enabling backports for Ubuntu 14.04 (Trusty Tahr) -- tags: apache, backports"
+  copy:
+    src: trusty-backports
+    dest: /etc/apt/preferences.d/trusty-backports
+    owner: root
+    group: root
+    mode: 0600
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - backports
+    - apache
+
+- name: "Installing Apache -- tags: apache"
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - acl
+    - apache2
+    - apache2-utils
+    - git
+  notify:
+    - restart apache
+  tags:
+    - apache
+
+- name: "Disabling MPM conflicts -- tags: apache"
+  apache2_module:
+    name: "{{ item }}"
+    state: absent
+#    force: yes
+    ignore_configcheck: yes
+  with_items:
+    - mpm_event
+    - mpm_worker
+  tags:
+    - apache
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+#- name: "Disabling MPM conflicts -- tags: apache"
+#  command: "/usr/sbin/a2dismod {{ item }}"
+#  with_items:
+#    - mpm_event
+#    - mpm_worker
+#  tags:
+#    - apache
+
+- name: "Enabling Apache module mpm_prefork -- tags: apache"
+  apache2_module:
+    state: present
+    name: mpm_prefork
+#    force: yes
+    ignore_configcheck: yes
+  tags:
+    - apache
+ 
+# Bug work-around - re-enable apache2_module when the bug is fixed
+#- name: "Enabling Apache module mpm_prefork -- tags: apache"
+#  command: "/usr/sbin/a2enmod mpm_prefork"
+#  tags:
+#    - apache
+
+- name: "Enabling other Apache modules -- tags: apache"
+  apache2_module:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - access_compat
+    - alias
+    - auth_basic
+    - authn_core
+    - authn_file
+    - authnz_ldap
+    - authz_core
+    - authz_host
+    - authz_user
+    - autoindex
+    - deflate
+    - dir
+    - env
+    - expires
+    - filter
+    - headers
+    - ldap
+    - mime
+    - negotiation
+    - rewrite
+    - setenvif
+    - socache_shmcb
+    - ssl
+    - status
+  notify:
+    - restart apache
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+#- name: "Enabling other Apache modules -- tags: apache"
+#  command: "/usr/sbin/a2enmod {{ item }}"
+#  with_items:
+#    - access_compat
+#    - alias
+#    - auth_basic
+#    - authn_core
+#    - authn_file
+#    - authnz_ldap
+#    - authz_core
+#    - authz_host
+#    - authz_user
+#    - autoindex
+#    - deflate
+#    - dir
+#    - env
+#    - expires
+#    - filter
+#    - headers
+#    - ldap
+#    - mime
+#    - negotiation
+#    - rewrite
+#    - setenvif
+#    - socache_shmcb
+#    - ssl
+#    - status
+#  notify:
+#    - restart apache
+#  tags:
+#    - apache
+
+- name: "Disabling default site -- tags: apache"
+  command: /usr/sbin/a2dissite *default*
+  args:
+    removes: /etc/apache2/sites-enabled/*default*.conf
+  tags:
+    - apache
+
+- name: "Deleting default site conf files -- tags: apache"
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/apache2/sites-available/000-default.conf
+    - /etc/apache2/sites-available/default-ssl.conf
+  tags:
+    - apache
+
+- name: "Adding new status.conf -- tags: apache"
+  copy:
+    src: "{{ ansible_distribution }}-status.conf"
+    dest: /etc/apache2/mods-available/status.conf
+    force: yes
+    backup: no
+  tags:
+    - apache
+
+- name: "Adding new mpm_prefork.conf -- tags: apache"
+  copy:
+    src: mpm_prefork.conf
+    dest: /etc/apache2/conf-available/mpm_prefork.conf
+    force: yes
+    backup: no
+  tags:
+    - apache
+
+- name: "Adding noindex.conf -- tags: apache"
+  copy:
+    src: noindex.conf
+    dest: /etc/apache2/conf-available/noindex.conf
+    force: yes
+    backup: no
+  when: env_type | match("DEV|STG")
+  tags:
+    - apache
+
+- name: "Enabling noindex.conf -- tags: apache"
+  command: /usr/sbin/a2enconf noindex
+  args:
+    creates: /etc/apache2/conf-enabled/noindex.conf
+  when: env_type | match("DEV|STG")
+  tags:
+    - apache
+
+- name: "Adding ops.conf -- tags: apache"
+  template:
+    src: ops.conf.j2
+    dest: /etc/apache2/conf-available/ops.conf
+    force: yes
+    backup: no
+  tags:
+    - apache
+
+- name: "Enabling ops.conf -- tags: apache"
+  command: /usr/sbin/a2enconf ops
+  args:
+    creates: /etc/apache2/conf-enabled/ops.conf
+  tags:
+    - apache
+
+- name: "Adding security.conf -- tags: apache"
+  copy:
+    src: security.conf
+    dest: /etc/apache2/conf-available/security.conf
+    force: yes
+    backup: no
+  tags:
+    - apache
+
+- name: "Enabling security.conf -- tags: apache"
+  command: /usr/sbin/a2enconf security
+  args:
+    creates: /etc/apache2/conf-enabled/security.conf
+  tags:
+    - apache
+
+- name: "Adding ssl_offloading.conf -- tags: apache"
+  copy:
+    src: ssl_offloading.conf
+    dest: /etc/apache2/conf-available/ssl_offloading.conf
+    force: yes
+    backup: no
+  tags:
+    - apache
+
+- name: "Adding blockgit.conf -- tags: apache"
+  copy:
+    src: blockgit.conf
+    dest: /etc/apache2/conf-available/blockgit.conf
+    force: yes
+    backup: no
+  tags:
+    - apache
+
+- name: "Enabling blockgit.conf -- tags: apache"
+  command: /usr/sbin/a2enconf blockgit
+  args:
+    creates: /etc/apache2/conf-enabled/blockgit.conf
+  tags:
+    - apache
+
+- name: "Enabling ssl_offloading.conf -- tags: apache"
+  command: /usr/sbin/a2enconf ssl_offloading
+  args:
+    creates: /etc/apache2/conf-enabled/ssl_offloading.conf
+  tags:
+    - apache
+
+- name: "Set vhost name -- tags: apache"
+  set_fact:
+    vhost_name : "{{ client_code | lower }}-{{ app_type | lower }}-{{ env_type | lower }}"
+  tags:
+    - apache
+
+- name: "Copying base vhost configuration with {{ php_processor }} -- tags: apache"
+  template:
+    src: "{{ ansible_distribution }}-lcgosc.com.conf.j2"
+    dest: "/etc/apache2/sites-available/{{ vhost_name }}.lcgosc.com.conf"
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - apache
+
+- name: "Enabling base vhost configuration -- tags: apache"
+  shell: /usr/sbin/a2ensite {{ vhost_name }}.lcgosc.com
+  args:
+    creates: /etc/apache2/sites-enabled/{{ vhost_name }}.lcgosc.com.conf
+  notify:
+    - restart apache
+  tags:
+    - apache
+

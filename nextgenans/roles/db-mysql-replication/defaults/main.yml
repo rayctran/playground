@@ -1,0 +1,6 @@
+---
+# db-mysql-replication/defaults/main.yml
+mysql_root_password: Rfvbgt345
+mysql_user: root
+mysql_old_root_password: ''
+mysql_replication_user_password: Rfvbgt345

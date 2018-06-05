@@ -1,0 +1,16 @@
+---
+# ssh-management/tasks/main.yml
+
+- name: "Remove key if exists for {{ inventory_hostname }} -- tags: ssh-key"
+  shell: ssh-keygen -R {{ inventory_hostname }}
+  ignore_errors: yes
+  delegate_to: localhost
+  tags:
+    - ssh-key
+
+- name: "Add key for {{ inventory_hostname }} -- tags: ssh-key"
+  shell: ssh-keyscan -H {{ inventory_hostname }} >> ~/.ssh/known_hosts
+  ignore_errors: yes
+  delegate_to: localhost
+  tags:
+    - ssh-key

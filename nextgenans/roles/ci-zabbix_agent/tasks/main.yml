@@ -1,0 +1,47 @@
+---
+# ci-monitoring-nagios/tasks/main.yml
+- name: "Installing the Python PIP package for Ubuntu"
+  apt:
+    name: python-pip
+    state: present
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-agent
+
+- name: "Installing the Python PIP package for CentOS"
+  yum:
+    name: python-pip
+    state: present
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - zabbix-agent
+
+- name: "Adding Scripts to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/scripts/
+    owner: zabbix
+    group: zabbix
+    mode: 0755
+    force: yes
+  with_fileglob:
+    - scripts/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent
+
+- name: "Adding Conf files to Zabbix"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/zabbix/zabbix_agentd.d/
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  with_fileglob:
+    - conf/*
+  notify:
+    - restart zabbix-agent
+  tags:
+    - zabbix-agent

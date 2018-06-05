@@ -1,0 +1,17 @@
+#!/bin/bash
+# This file is managed by Ansible.
+# Any manual changes may be overwritten at any time.
+
+IPADDRESS=$(ip a | grep -o -e '10.0.*.*/32')
+
+echo "================================================="
+echo "  CLIENT: {{ client_code }} - {{ client }}"
+#echo "  CLIENT VERSION: {{ client_version }}"
+echo "  ANSIBLE STANDARD: {{ standard_version }}"
+echo "  This is a {{ env_type }} server."
+echo "================================================="
+if [[ $IPADDRESS -ne 0 ]]; then
+    echo "  This server currently controls the VIP(s)"
+    echo "================================================="
+fi
+echo

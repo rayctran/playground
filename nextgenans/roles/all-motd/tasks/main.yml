@@ -1,0 +1,13 @@
+---
+# all-motd/tasks/main.yml
+
+- name: "Including common MOTD components"
+  include: motd-common.yml
+
+- name: "Including CentOS MOTD components"
+  include: motd-{{ ansible_distribution }}.yml
+  when: ansible_distribution == 'CentOS'
+
+- name: "Including Ubuntu MOTD components"
+  include: motd-{{ ansible_distribution }}.yml
+  when: ansible_distribution == 'Ubuntu'

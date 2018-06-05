@@ -1,0 +1,109 @@
+---
+# web-php/tasks/php-Ubuntu_trusty_mod_php.yml
+- name: "Set vhost name -- tags: apache"
+  set_fact:
+    vhost_name : "{{ client_code | lower }}-{{ app_type | lower }}-{{ env_type | lower }}"
+  tags:
+    - php-vhost-config
+
+- name: "Copying base vhost configuration with {{ php_processor }} -- tags: apache"
+  template:
+    src: "{{ ansible_distribution }}_{{ php_processor }}_lcgosc.com.conf.j2"
+    dest: "/etc/apache2/sites-available/{{ vhost_name }}.lcgosc.com.conf"
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - php-vhost-config
+
+- name: "Enabling base vhost configuration -- tags: apache"
+  shell: /usr/sbin/a2ensite {{ vhost_name }}.lcgosc.com
+  args:
+    creates: /etc/apache2/sites-enabled/{{ vhost_name }}.lcgosc.com.conf
+  notify:
+    - restart apache
+  tags:
+    - php-vhost-config
+
+# Addressing the requirement for M2 Stage
+- name: "Set vhost name for {{ app_type }} {{ env_type }} -- tags: apache"
+  set_fact:
+    vhost_name : "{{ client_code | lower }}-{{ app_type | lower }}"
+  when: app_type | match("M2") and env_type | match("STG")
+  tags:
+    - php-vhost-config
+
+- name: "Copying base vhost configuration for {{ app_type }}  with {{ php_processor }} for {{ env_type }} -- tags: apache"
+  template:
+    src: "{{ ansible_distribution }}_m2_{{ php_processor }}_lcgosc.com.conf.j2"
+    dest: "/etc/apache2/sites-available/{{ vhost_name }}-{{ item }}.lcgosc.com.conf"
+    owner: root
+    group: root
+    mode: 0644
+  when:
+    - app_type | match("M2")
+    - env_type | match("STG")
+  with_items:
+    - demo1
+    - demo2
+    - docs
+    - preprod
+    - qa
+    - ref
+    - test
+  tags:
+    - php-vhost-config
+
+- name: "Creating www place holders for M2 Stage -- tags: apache"
+  file:
+    path: /var/www/{{ vhost_name}}-{{ item }}
+    owner: www-data
+    group: www-data
+    mode: 0664
+    state: directory
+  when: app_type | match("M2") and env_type | match("STG")
+  with_items:
+    - demo1
+    - demo2
+    - docs
+    - preprod
+    - qa
+    - ref
+    - test
+  tags:
+    - php-vhost-config
+
+- name: update ip address 9x vlan
+  replace:
+    dest: /etc/apache2/sites-available/{{ vhost_name }}-{{ item }}.lcgosc.com.conf
+    regexp: 'VHOST_DIR'
+    replace: '{{ item }}'
+  with_items:
+    - demo1
+    - demo2
+    - docs
+    - preprod
+    - qa
+    - ref
+    - test
+  when: app_type | match("M2") and env_type | match("STG")
+  tags:
+    - php-vhost-config
+
+- name: "Enabling base vhost configuration -- tags: apache"
+  shell: /usr/sbin/a2ensite {{ vhost_name }}-{{ item }}.lcgosc.com
+  args:
+    creates: /etc/apache2/sites-enabled/{{ vhost_name }}-{{ item }}.lcgosc.com.conf
+  when: app_type | match("M2") and env_type | match("STG")
+  with_items:
+    - demo1
+    - demo2
+    - docs
+    - preprod
+    - qa
+    - ref
+    - test
+  notify:
+    - restart apache
+  tags:
+    - php-vhost-config

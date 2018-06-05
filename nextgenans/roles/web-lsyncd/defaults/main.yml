@@ -1,0 +1,4 @@
+---
+# web-lsyncd/defaults/main.yml
+lsyncd_tag: test
+lsyncd_source: /var/www/production.lcgosc.com/shared/

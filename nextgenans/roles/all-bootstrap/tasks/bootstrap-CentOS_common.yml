@@ -1,0 +1,126 @@
+---
+# all-bootstrap/tasks/bootstrap-CentOS_common.yml
+
+# 12/2017 Moved from main common play
+- name: "Setting standard empty /etc/rc.local -- tags: bootstrap, rclocal"
+  copy:
+    src: rc.local
+    dest: /etc/rc.d/rc.local
+    owner: root
+    group: root
+    mode: 0755
+    backup: yes
+    force: yes
+  tags:
+    - bootstrap
+    - rclocal
+
+- name: "Update primary DNS server -- tags: bootstrap, dns"
+  lineinfile:
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ ansible_default_ipv4.interface }}"
+    regexp: "DNS1=*"
+    line: "DNS1=10.0.1.240"
+    state: present
+  tags:
+    - bootstrap
+    - dns
+
+- name: "Update secondary DNS server -- tags: bootstrap, dns"
+  lineinfile:
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ ansible_default_ipv4.interface }}"
+    regexp: "DNS2=*"
+    line: "DNS2=10.0.4.12"
+    state: present
+  tags:
+    - bootstrap
+    - dns
+
+- name: "Set up route file -- tags: bootstrap, network"
+  lineinfile:
+    dest: "/etc/sysconfig/network-scripts/route-{{ ansible_default_ipv4.interface }}"
+    backup: yes
+    insertbefore: EOF
+    state: present
+    create: yes
+    line: "default via 10.0.{{ vlan.stdout }}.2"
+  register: routes_changed
+  tags:
+    - bootstrap
+    - network
+
+- name: "Add Cisco VPN information to route file -- tags: bootstrap, network"
+  lineinfile:
+    dest: "/etc/sysconfig/network-scripts/route-{{ ansible_default_ipv4.interface }}"
+    backup: yes
+    insertafter: EOF
+    state: present
+    create: yes
+    line: "10.200.0.0/16 via 10.0.{{ vlan.stdout }}.254"
+  register: routes_changed
+  tags:
+    - bootstrap
+    - network
+
+- name: "Increasing OpenSSH log verbosity -- tags: bootstrap, ssh"
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    backup: yes
+    regexp: 'Subsystem	sftp	/usr/libexec/openssh/sftp-server'
+    line: 'Subsystem sftp /usr/libexec/openssh/sftp-server -f local1 -l info'
+    state: present
+    create: no
+    backrefs: yes
+  notify: reload openssh sshd
+  tags:
+    - bootstrap
+    - ssh
+
+- name: "Gathering sysstat file details -- tags: bootstrap, sysstat"
+  stat:
+    path: /etc/sysconfig/sysstat
+  register: sysstat_file
+  changed_when: false
+  tags:
+    - bootstrap
+    - sysstat
+
+- name: "Updating /etc/sysconfig/sysstat -- tags: bootstrap, sysstat"
+  copy:
+    src: "sysstat-{{ ansible_distribution }}"
+    dest: /etc/sysconfig/sysstat
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify:
+    - restart sysstat
+  when: sysstat_file.stat.exists == True
+  tags:
+    - bootstrap
+    - sysstat
+
+- set_fact:
+        ius_distribution_abbrev: "{{ (ansible_distribution == 'CentOS') | ternary('centos', 'rhel') }}"
+
+- name: "Enabling the EPEL & IUS repos -- tags: bootstrap, epel, ius"
+# Must be state: present due to deficiency in ansible. See:
+# https://github.com/ansible/ansible-modules-core/issues/948 
+  yum:
+    name: "https://{{ ius_distribution_abbrev }}{{ ansible_distribution_major_version }}.iuscommunity.org/ius-release.rpm"
+    state: present
+  tags:
+    - bootstrap
+    - epel
+    - ius
+
+# AHA-207 12/2017
+- name: "Updating selinux for Magento -- tags: bootstrap, selinux"
+  lineinfile:
+    dest: /etc/selinux/config
+    regexp: "^SELINUX="
+    line: 'SELINUX=permissive'
+    backrefs: yes
+    state: present
+  tags:
+    - bootstrap
+    - selinux

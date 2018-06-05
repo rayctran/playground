@@ -1,0 +1,55 @@
+#!/usr/bin/env ansible-playbook
+---
+# file: full-stack.yml
+# Playbook for building a full Magento stack
+
+##### All Servers - [ALL] #####
+- include: basic-build.yml
+
+##### Admin Panel Server - [ADM] #####
+- include: adm.yml
+
+##### API Server - [API] #####
+- include: api.yml
+
+##### Continuous Integration (Jenkins) Server - [CI] #####
+- include: ci.yml
+
+##### Database Server - [DB] #####
+- include: db.yml
+
+##### Docker Server - [DKR] #####
+- include: docker.yml
+
+##### ElasticSearch Server - [ELA] #####
+- include: ela.yml
+
+##### Load Balancers - [LB] #####
+- include: lb.yml
+
+##### Memcache Server - [MEM] #####
+- include: mem.yml
+
+##### Monitor Server - [MON] #####
+- include: mon-proxy.yml
+
+##### Redis Server - [RED] #####
+- include: red.yml
+
+##### RabbitMQ Server - [RMQ] #####
+- include: rmq.yml
+
+##### Solr Server - [SLR] #####
+- include: slr.yml
+
+##### Varnish Server - [VAR] #####
+- include: var.yml
+
+##### Web Servers - [WEB] #####
+- include: web.yml
+
+##### Failwhale Server - [WHL] #####
+- include: whl.yml
+
+##### Monitoring include MON ####
+- include: zabbix.yml

@@ -1,0 +1,35 @@
+---
+# all-security/tasks/security-Ubuntu.yml
+
+- name: "Test for PROMPT_COMMAND in /etc/bash.bashrc -- tags: security, bash"
+  command: grep "^export PROMPT_COMMAND" /etc/bash.bashrc
+  register: bashrc_prompt_command
+  changed_when: "bashrc_prompt_command.rc == 1"
+  failed_when: "bashrc_prompt_command.rc == 2"
+  tags:
+    - security
+    - bash
+
+- name: "Copying bash command log line to the machine -- tags: security, bash"
+  copy:
+    src: bash_prompt_cmd.sh
+    dest: /tmp/bash_prompt_cmd.sh
+  when: bashrc_prompt_command.rc == 1
+  tags:
+    - security
+    - bash
+
+- name: "Echo the bash command log to the end of the bash.bashrc file -- tags: security, bash"
+  shell: cat /tmp/bash_prompt_cmd.sh >> /etc/bash.bashrc
+  when: bashrc_prompt_command.rc == 1
+  tags:
+    - security
+    - bash
+
+- name: "Removing the temp command log line file -- tags: security, bash"
+  file:
+    path: /tmp/bash_prompt_cmd.sh
+    state: absent
+  tags:
+    - security
+    - bash

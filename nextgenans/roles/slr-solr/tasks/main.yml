@@ -1,0 +1,29 @@
+---
+# slr-solr/tasks/main.yml
+
+- name: "Installing Solr."
+  apt:
+    name:
+      - solr-tomcat
+    state: present
+    update_cache: yes
+
+- name: "Copy Solr Configs."
+  copy: 
+    src=./roles/slr-solr/files/ 
+    dest=/etc/solr/conf/
+    owner=root
+    group=root
+  notify:
+    - restart tomcat6
+  when: ansible_distribution_release == 'trusty'
+
+- name: "Copy Solr Configs."
+  copy: 
+    src=./roles/slr-solr/files/ 
+    dest=/etc/solr/conf/
+    owner=root
+    group=root
+  notify:
+    - restart tomcat7
+  when: ansible_distribution_release == 'xenial'

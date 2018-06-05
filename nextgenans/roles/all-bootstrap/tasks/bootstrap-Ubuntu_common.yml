@@ -1,0 +1,102 @@
+---
+# all-bootstrap/tasks/bootstrap-Ubuntu_common.yml
+
+# 12/2017 - Moved from common
+- name: "Setting standard empty /etc/rc.local -- tags: bootstrap, rclocal"
+  copy:
+    src: rc.local
+    dest: /etc/rc.local
+    owner: root
+    group: root
+    mode: 0755
+    backup: yes
+    force: yes
+  tags:
+    - bootstrap
+    - rclocal
+
+- name: "Ensure DNS is set correctly -- tags: active_directory, dns"
+  lineinfile:
+    dest: /etc/network/interfaces
+    regexp: "^(dns-nameservers)"
+    line: '\1 10.0.1.240 10.0.4.12'
+    backrefs: yes
+    state: present
+  tags:
+    - active_directory
+    - dns
+
+- name: "Set up route files -- tags: bootstrap, network"
+  lineinfile:
+    dest: /etc/network/interfaces
+    backup: yes
+    insertafter: EOF
+    state: present
+    create: no
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: 'route add 10.200.0.0/16', line: 'post-up /sbin/ip route add 10.200.0.0/16 via 10.0.{{ vlan.stdout }}.254' }
+  register: routes_changed
+  tags:
+    - bootstrap
+    - network
+
+# 12/2017 - Removed because ssh is available on the templates
+#- name: "Installing OpenSSH  -- tags: bootstrap, ssh"
+#  apt:
+#    update_cache: yes
+#    cache_valid_time: 43200
+#    state: present
+#    name: "{{ item }}"
+#  async: 300
+#  poll: 15
+#  with_items:
+#    - openssh-client
+#    - openssh-server
+#  notify: 
+#    - enable openssh sshd
+#    - enable openssh ssh
+#  tags:
+#    - bootstrap
+#    - ssh
+
+- name: "Increasing OpenSSH log verbosity -- tags: bootstrap, ssh"
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    backup: yes
+    regexp: 'Subsystem sftp \/usr\/lib\/openssh\/sftp-server'
+    line: 'Subsystem sftp /usr/lib/openssh/sftp-server -f local1 -l info'
+    state: present
+    create: no
+    backrefs: yes
+  notify: 
+    - reload openssh sshd
+    - reload openssh ssh
+  tags:
+    - bootstrap
+    - ssh
+
+- name: "Gathering sysstat file details -- tags: bootstrap, sysstat"
+  stat:
+    path: /etc/default/sysstat
+  register: sysstat_file
+  changed_when: false
+  tags:
+    - bootstrap
+    - sysstat
+
+- name: "Updating /etc/default/sysstat -- tags: bootstrap, sysstat"
+  copy:
+    src: "sysstat-{{ ansible_distribution }}"
+    dest: /etc/default/sysstat
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify:
+    - restart sysstat
+  when: sysstat_file.stat.exists == True
+  tags:
+    - bootstrap
+    - sysstat

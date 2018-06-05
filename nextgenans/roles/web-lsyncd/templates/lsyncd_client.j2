@@ -1,0 +1,8 @@
+[{{ lsyncd_tag }}]
+    path = {{ lsyncd_source }}
+    uid = root
+    gid = root
+    read only = no
+    list = yes
+    hosts allow = {{ groups['ADM'][0] }}
+

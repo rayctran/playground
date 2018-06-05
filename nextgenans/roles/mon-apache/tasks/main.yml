@@ -1,0 +1,170 @@
+---
+# mon-apache/tasks/main.yml
+- name: "Installing Apache"
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - acl
+    - apache2
+    - apache2-utils
+    - git
+    - mysql-client-5.6
+    - npm
+  notify:
+    - restart apache
+
+- name: "Disabling MPM conflicts"
+  apache2_module:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - mpm_event
+    - mpm_worker
+
+- name: "Enabling Apache module mpm_prefork"
+  apache2_module:
+    name: mpm_prefork
+    state: present
+
+- name: "Enabling other Apache modules"
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - access_compat
+    - alias
+    - auth_basic
+    - authn_core
+    - authn_file
+    - authnz_ldap
+    - authz_core
+    - authz_host
+    - authz_user
+    - autoindex
+    - deflate
+    - dir
+    - env
+    - expires
+    - filter
+    - headers
+    - ldap
+    - mime
+    - negotiation
+    - rewrite
+    - setenvif
+    - socache_shmcb
+    - ssl
+    - status
+  notify:
+    - restart apache
+
+  ##################################
+  ## Vhosts File
+  ##################################
+
+- name: "Disabling 000-default.conf"
+  command: /usr/sbin/a2dissite *default*
+  args:
+    removes: /etc/apache2/sites-enabled/*default.conf
+  notify:
+    - restart apache
+
+- name: "Deleting 000-default.conf"
+  file:
+    path: /etc/apache2/sites-available/000-default.conf
+    state: absent
+
+- name: "Adding generic Vhosts file"
+  template:
+    src: lcgosc.com.conf.j2
+    dest: /etc/apache2/sites-available/{{ domain }}.conf
+  notify:
+    - restart apache
+
+- name: "Enabling generic Vhosts file"
+  shell: /usr/sbin/a2ensite {{ domain }}
+  args:
+    creates: /etc/apache2/sites-enabled/{{ domain }}.conf
+  notify:
+    - restart apache
+
+  ##################################
+  ## Apache configuration changes
+  ##################################
+
+- name: "Adding new apache2.conf"
+  copy:
+    src: apache2.conf
+    dest: /etc/apache2/apache2.conf
+    force: yes
+    backup: no
+  notify:
+    - restart apache
+
+- name: "Adding new status.conf"
+  copy:
+    src: status.conf
+    dest: /etc/apache2/mods-available/status.conf
+    force: yes
+    backup: no
+  notify:
+    - restart apache
+
+- name: "Adding new mpm_prefork.conf"
+  copy:
+    src: mpm_prefork.conf
+    dest: /etc/apache2/conf-available/mpm_prefork.conf
+    force: yes
+    backup: no
+  notify:
+    - restart apache
+
+- name: "Adding ops.conf"
+  template:
+    src: ops.conf.j2
+    dest: /etc/apache2/conf-available/ops.conf
+    force: yes
+    backup: no
+  notify:
+    - restart apache
+
+- name: "Enabling ops.conf"
+  command: /usr/sbin/a2enconf ops
+  args:
+    creates: /etc/apache2/conf-enabled/ops.conf
+  notify:
+    - restart apache
+
+- name: "Adding security.conf"
+  copy:
+    src: security.conf
+    dest: /etc/apache2/conf-available/security.conf
+    force: yes
+    backup: no
+  notify:
+    - restart apache
+
+- name: "Enabling security.conf"
+  command: /usr/sbin/a2enconf security
+  args:
+    creates: /etc/apache2/conf-enabled/security.conf
+  notify:
+    - restart apache
+
+- name: "Adding blockgit.conf"
+  copy:
+    src: blockgit.conf
+    dest: /etc/apache2/conf-available/blockgit.conf
+    force: yes
+    backup: no
+  notify:
+    - restart apache
+
+- name: "Enabling blockgit.conf"
+  command: /usr/sbin/a2enconf blockgit
+  args:
+    creates: /etc/apache2/conf-enabled/blockgit.conf
+  notify:
+    - restart apache

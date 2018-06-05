@@ -1,0 +1,58 @@
+---
+# web-php/tasks/php-Ubuntu_trusty_mod_php.yml
+- name: "Installing PHP dependencies modules"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - libapache2-mod-php5
+    - php-pear
+    - php-soap
+    - php5-cli
+    - php5-common
+    - php5-gd
+    - php5-ldap
+    - php5-mcrypt
+    - php5-mysql
+    - php5-xmlrpc
+
+- name: "Disabling mpm_event module"
+  command: "/usr/sbin/a2dismod {{ item }}"
+  with_items:
+      - mpm_event
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+- name: "Enabling Apache PHP module"
+  command: "/usr/sbin/a2enmod {{ item }}"
+  with_items:
+      - access_compat 
+      - alias 
+      - auth_basic 
+      - authn_core 
+      - authn_file 
+      - authnz_ldap 
+      - authz_core 
+      - authz_host 
+      - authz_user 
+      - autoindex 
+      - deflate 
+      - dir 
+      - env 
+      - filter 
+      - headers 
+      - ldap 
+      - mime 
+      - mpm_prefork 
+      - negotiation 
+      - php5 
+      - rewrite 
+      - setenvif 
+      - socache_shmcb 
+      - ssl 
+      - status
+  notify:
+    - restart apache

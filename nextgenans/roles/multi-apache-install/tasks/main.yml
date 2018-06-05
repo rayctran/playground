@@ -1,0 +1,6 @@
+---
+# multi-apache/tasks/main.yml
+- name: "Including {{ ansible_distribution }} Apache tasks"
+  include: "multi-apache-{{ ansible_distribution }}.yml"
+  tags:
+    - apache

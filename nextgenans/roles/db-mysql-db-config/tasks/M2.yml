@@ -1,0 +1,71 @@
+# db-mysql/tasks/main.yml
+- set_fact:
+    host_count: "{{ groups['WEB'] | length }}"
+
+- name: Creating MySQL Database
+  mysql_db:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: "{{ mysql_db_name }}"
+    state: present
+  tags:
+    - mysql-db-config
+
+- name: Creating MySQL user for Dev
+  mysql_user:
+    name: "{{ mysql_user }}"
+    host: localhost
+    password: "{{ mysql_dbuser_password }}"
+    priv: '{{ client_code }}%.*:ALL'
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    state: present
+#  when: env_type | match("DEV") and host_count | match("0")
+  when: env_type | match("DEV")
+  tags:
+    - mysql-db-config
+
+- name: Creating MySQL Database For Stage
+  mysql_db:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ client_code }}_DEMO1_{{ app_type }}"
+    - "{{ client_code }}_DEMO2_{{ app_type }}"
+    - "{{ client_code }}_PREPROD_{{ app_type }}"
+    - "{{ client_code }}_QA_{{ app_type }}"
+    - "{{ client_code }}_QA_{{ app_type }}_FULL"
+    - "{{ client_code }}_TEST_{{ app_type }}"
+  when: env_type | match("STG")
+  tags:
+    - mysql-db-config
+
+- debug:
+    msg: " hostname is {{ my_current_vlan }}.4%"
+
+- name: Creating MySQL users for Prod
+  mysql_user:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: "{{ mysql_user }}"
+    host: "{{ item }}"
+    password: "{{ mysql_dbuser_password }}"
+    priv: '{{ client_code }}%.*:ALL'
+    state: present
+  with_items:
+    - "{{ my_current_vlan }}.4%"
+    - "{{ my_current_vlan }}.5%"
+    - "{{ my_current_vlan }}.6%"
+  when: env_type | match("PRD")
+  tags:
+    - mysql-db-config

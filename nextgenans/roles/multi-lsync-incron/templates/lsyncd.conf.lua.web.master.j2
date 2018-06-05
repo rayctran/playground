@@ -1,0 +1,49 @@
+settings {
+    logfile = "/var/log/lsyncd.log",
+    statusFile = "/var/log/lsyncd.status",
+    statusInterval = 1,
+    insist = 1,
+}
+ 
+ 
+sync{
+        default.rsync,
+        source="/etc/ssl",
+        target="{{ lsync_client }}::ssl",
+        excludeFrom="/etc/lsyncd/lsync.exclude",
+        rsync = {
+                archive = true,
+                compress = true,
+                hard_links = true,
+                links = true,
+                _extra = { "-O" }
+        }
+}
+ 
+sync{
+        default.rsync,
+        source="/etc/apache2/sites-available",
+        target="{{ lsync_client }}::sites-available",
+        excludeFrom="/etc/lsyncd/lsync.exclude",
+        rsync = {
+                archive = true,
+                compress = true,
+                hard_links = true,
+                links = true,
+                _extra = { "-O" }
+        }
+}
+ 
+sync{
+        default.rsync,
+        source="/etc/apache2/sites-enabled",
+        target="{{ lsync_client }}::sites-enabled",
+        excludeFrom="/etc/lsyncd/lsync.exclude",
+        rsync = {
+                archive = true,
+                compress = true,
+                hard_links = true,
+                links = true,
+                _extra = { "-O" }
+        }
+}}

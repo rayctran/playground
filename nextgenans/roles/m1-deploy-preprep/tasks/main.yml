@@ -1,0 +1,18 @@
+---
+# m1-depoy-client/tasks/main.yml
+
+- name: "Initial deployment set up for Stage"
+  shell: /usr/local/bin/bundle exec cap staging deploy:setup
+  args:
+    chdir: /var/www/capdeploy/
+  when: env_type | match('STG')
+- name: "Initial deployment set up for Preprod"
+  shell: /usr/local/bin/bundle exec cap preprod deploy:setup
+  args:
+    chdir: /var/www/capdeploy/
+  when: env_type | match('STG')
+- name: "Initial deployment set up for Production"
+  shell: /usr/local/bin/bundle exec cap production deploy:setup
+  args:
+    chdir: /var/www/capdeploy/
+  when: env_type | match('PRD')

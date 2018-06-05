@@ -1,0 +1,29 @@
+[INCLUDES]
+before = paths-debian.conf
+
+[DEFAULT]
+ignoreip = 127.0.0.1/8 10.0.0.0/8
+bantime = 14400
+findtime = 600
+maxretry = 3
+backend = auto
+usedns = warn
+logencoding = auto
+enabled = false
+filter = %(__name__)s
+
+protocol = tcp
+chain = INPUT
+port = 0:65535
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+
+action_ = %(banaction)s[name=%(__name__)s, bantime="%(bantime)s", port="%(port)s", protocol="%(protocol)s", chain="%(chain)s"]
+
+
+[ssh]
+enabled = true
+port    = ssh
+filter  = sshd
+logpath  = /var/log/auth.log
+maxretry = 3

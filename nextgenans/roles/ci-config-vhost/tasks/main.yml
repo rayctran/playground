@@ -1,0 +1,26 @@
+---
+# ci-apache/tasks/main.yml
+- name: "Configuring Apache"
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - proxy
+    - proxy_http
+    - proxy_ajp
+  notify:
+    - restart apache
+
+- name: "Adding vhost file"
+  template:
+    src: lcgosc.com.conf.j2
+    dest: /etc/apache2/sites-available/{{ client_code }}jenkins.lcgosc.com.conf
+  notify:
+    - restart apache
+
+- name: "Enabling vhost file"
+  shell: /usr/sbin/a2ensite {{ client_code }}jenkins.lcgosc.com
+  args:
+    creates: /etc/apache2/sites-enabled/{{ client_code }}jenkins.lcgosc.com.conf
+  notify:
+    - restart apache

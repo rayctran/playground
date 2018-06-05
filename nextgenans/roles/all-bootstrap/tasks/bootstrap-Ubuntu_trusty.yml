@@ -1,0 +1,57 @@
+---
+# all-bootstrap/tasks/bootstrap-Ubuntu_trusty.yml
+- name: "Installing NTP service -- tags: bootstrap, ntp"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - ntp
+    - ntpdate
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Making sure NTP is started and enabled to start at boot -- tags: bootstrap, ntp"
+  service:
+    name: ntp
+    state: started
+    enabled: yes
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Updating NTP configuration file to use datacenter NTP servers -- tags: bootstrap, ntp"
+  copy:
+    src: ntp.conf
+    dest: /etc/ntp.conf
+    force: yes
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Getting timezone information from the server -- tags: bootstrap, ntp"
+  command: bash -c "grep -c Chicago /etc/timezone | sed 's/1/True/g'"
+  register: Chicago
+  changed_when: false
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Setting the timezone to America/Chicago -- tags: bootstrap, ntp"
+  copy:
+    content: 'America/Chicago\n'
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  when: not Chicago
+  notify:
+    - update timezone
+  tags:
+    - bootstrap
+    - ntp

@@ -1,0 +1,16 @@
+---
+# all-motd/tasks/motd-common.yml
+
+- name: Get and Set current Git tag
+  shell: "git describe --tags | cut -d '-' -f 1"
+  register: git_status
+  changed_when: False
+  delegate_to: 127.0.0.1
+  become: no
+
+- name: Set current version
+  set_fact:
+    standard_version: "{{ git_status.stdout }}"
+
+- debug:
+    msg: "current git version is {{ standard_version }}"

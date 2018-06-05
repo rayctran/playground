@@ -1,0 +1,11 @@
+---
+# all-security/handlers/main.yml
+- name: restart rsyslogd
+  service:
+    name: rsyslog
+    state: restarted
+
+- name: reload sysctl
+  service:
+    name: procps
+    state: restarted

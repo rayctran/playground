@@ -1,0 +1,13 @@
+---
+# all-security/tasks/main.yml
+
+- name: "Including Ubuntu security components."
+  include: "security-{{ ansible_distribution }}.yml"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: "Including CentOS security components."
+  include: "security-{{ ansible_distribution }}.yml"
+  when: ansible_distribution == 'CentOS'
+
+- name: "Including common security components."
+  include: security-common.yml

@@ -1,0 +1,193 @@
+---
+# multi-keepalived/tasks/main.yml
+# No go for keepalive not set
+- name: "Check if keepalived is already installed"
+  shell: dpkg -s keepalived | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  tags:
+    - keepalived
+
+- debug:
+    msg: " Keepalived is already installed. Skipping Keepalived installation..."
+  when: is_installed.rc == 0
+  tags:
+    - keepalived
+
+- meta: end_play
+  when: is_installed.rc == 0
+  tags:
+    - keepalived
+
+- debug:
+    msg: "Keepalive configuration variable is not set or non-production environment. Skipping.."
+  when: keepalive is undefined or not (env_type | match ('DMZ|PRD'))
+  tags:
+    - keepalived
+
+- meta: end_play
+  when: keepalive is undefined or not (env_type | match ('DMZ|PRD'))
+  tags:
+    - keepalived
+
+- name: "Seting sysctl.d config option."
+  copy:
+    src: 60-net.ipv4.ip_nonlocal_bind.conf
+    dest: /etc/sysctl.d/60-net.ipv4.ip_nonlocal_bind.conf
+    owner: root
+    group: root
+  notify:
+  - reload sysctl
+  tags:
+    - keepalived
+
+- name: "Installing Keepalived"
+  apt:
+    name: keepalived
+    state: present
+    cache_valid_time: 43200
+  tags:
+    - keepalived
+
+- name: "Updating /etc/default/keepalived on Ubuntu hosts"
+  copy:
+    src: keepalived.default
+    dest: /etc/default/keepalived
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - keepalived
+
+- name: Checking to see if this is a Physical server
+  command: "dmidecode -s system-product-name"
+  register: platform
+  tags:
+    - keepalived
+
+- debug:
+    msg: "{{ platform.stdout }}"
+  tags:
+    - keepalived
+
+- debug:
+    msg: "VM system"
+#  when: platform.stdout == 'VMware Virtual Platform'
+  when: platform.stdout | match("VMware*")
+  tags:
+    - keepalived
+
+- debug:
+    msg: "PowerEdge system"
+  when: platform.stdout | match("PowerEdge*")
+  tags:
+    - keepalived
+
+- name: Set interface name for VMs to eth0
+  set_fact: 
+    interface: eth0
+  when: platform.stdout | match("VMware*")
+  tags:
+    - keepalived
+
+- name: Set interface name for Physical server to bond0
+  set_fact: 
+    interface: bond0
+  when: platform.stdout | match("PowerEdge*")
+  tags:
+    - keepalived
+
+- name: Detecting VLAN
+  shell: echo {{ inventory_hostname }} | awk -F"." '{print $3}'
+  register: vlan
+  tags:
+    - keepalived
+
+- name: Set virtual_router_id 
+  set_fact: 
+    virtual_router_id: "{{ vlan.stdout }}"
+  tags:
+    - keepalived
+
+- name: Set up Authorization Password
+  command: "/usr/bin/pwgen -C -n 16 1"
+  register: passwd
+  run_once: true
+  become: no
+  delegate_to: localhost
+  tags:
+    - keepalived
+
+- name: Set auth_pass variable
+  set_fact: 
+    auth_pass: "{{ passwd.stdout }}"
+  run_once: true
+  tags:
+    - keepalived
+
+- name: Copy Configuration File For the LB Master
+  template:
+    src: keepalived.conf.lb.master.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify: 
+    - start keepalived
+  when: 
+    - inventory_hostname in groups['LB']
+    - keepalive == "master"
+  tags:
+    - keepalived
+
+- name: Copy Configuration File For the LB Backup
+  template:
+    src: keepalived.conf.lb.backup.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify: 
+    - start keepalived
+  when: 
+    - inventory_hostname in groups['LB']
+    - keepalive == "backup"
+  tags:
+    - keepalived
+
+- name: Copy Configuration File For the DB Master
+  template:
+    src: keepalived.conf.db.master.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify: 
+    - start keepalived
+  when: 
+    - inventory_hostname in groups['DB']
+    - keepalive == "master"
+  tags:
+    - keepalived
+
+- name: Copy Configuration File For the DB Backup
+  template:
+    src: keepalived.conf.db.backup.j2
+    dest: /etc/keepalived/keepalived.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  notify: 
+    - start keepalived
+  when: 
+    - inventory_hostname in groups['DB']
+    - keepalive == "backup"
+  tags:
+    - keepalived
+  

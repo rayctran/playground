@@ -1,0 +1,23 @@
+#!/usr/bin/env ansible-playbook
+---
+# file: zabbix.yml
+# Playbook for settting up Zabbix 
+
+# All servers get a client. This should cover any
+# groups that is not listed here. If a group 
+# requires specific config then add them here
+
+- hosts: all
+  become: yes
+  gather_facts: no
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - ssh-management
+
+- hosts: all
+  become: no
+  gather_facts: no
+  roles:
+    - ssh-management

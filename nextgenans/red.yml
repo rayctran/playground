@@ -1,0 +1,19 @@
+#!/usr/bin/env ansible-playbook
+---
+# red.yml
+
+- hosts: RED
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - red-redis
+#    - red-redis-replication
+#    - red-graylog_collector
+#    - red-ufw
+#    - multi-zabbix_agent 
+#    - red-zabbix_agent

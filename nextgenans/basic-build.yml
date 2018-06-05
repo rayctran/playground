@@ -1,0 +1,28 @@
+#!/usr/bin/env ansible-playbook
+---
+# file: basic-build.yml
+# Playbook for building a server
+- hosts: all
+  become: no
+  gather_facts: no
+  role:
+    - ssh-management
+
+- hosts: all
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: osc
+  roles:
+    - all-bootstrap
+    - all-motd
+    - all-active_directory
+    - all-packages
+    - all-security
+    - multi-graylog_syslog
+#    - all-lvm
+    - all-restart
+#    - LYONSCG.bacula

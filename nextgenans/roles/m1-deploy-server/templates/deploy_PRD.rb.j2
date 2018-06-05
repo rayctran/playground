@@ -1,0 +1,123 @@
+######################################
+## DO NOT REMOVE or MOVE THIS LINE ###
+load 'config/application'
+######################################
+
+## Application Specific Items
+##
+##
+
+set :repository,  "{{ deploy_repo }}"
+set :scm,         :git
+
+### Define the servers to receive the deployment
+### Can be defined inside a 'task'.
+### ROLES
+#role :web, '99.99.99.01'   # Your HTTP server, Apache/etc
+#role :web, '99.99.99.02'   # define a :web for each web server that will be deployed to 
+#role :web, '99.99.99.03'   # This may be the same as your `Web` server or a separate administration server
+#role :app, '99.99.99.04'   # This may be the same as your `Web` server or a separate administration server
+
+#### MUST HAVE ONE TASK DEFINED #####
+#### domain = directory name
+####   recommend using client base  
+####   domain or lcgosc.com.  
+####
+#### Subdirectory MUST match the 'task' name
+#### NEVER use 'stage' as a task 
+#### You can have more than one of
+#### any type of task.
+### TASKS
+### This will be the url of the repo. 
+### Can be defined inside a 'task'.
+
+########################################
+###              DEV TASK            ###
+########################################
+#task :dev do
+#	set :domain,      "dev.lcgosc.com"
+#	set :application, "dev.lcgosc.com"
+#	set :deploy_to,   "/var/www/#{domain}"
+#   set :environment, current_task.name
+#end  
+########################################
+###            STAGE TASK            ###
+########################################
+#task :staging do
+#	set :domain,      "staging.lcgosc.com"
+#	set :application, "staging.lcgosc.com"
+#	set :deploy_to,   "/var/www/#{domain}"
+#   set :environment, current_task.name
+#end
+########################################
+###            PREPROD TASK          ###
+########################################
+#task :preprod do
+#	set :domain,      "preprod.lcgosc.com"
+#	set :application, "preprod.lcgosc.com"
+#	set :deploy_to,   "/var/www/#{domain}"
+#   set :environment, current_task.name
+#end
+########################################
+###           PRODUCTION TASK        ###
+########################################
+#task :production do
+#	set :domain,      "production.lcgosc.com"
+#	set :application, "production.lcgosc.com"
+#	set :deploy_to,   "/var/www/#{domain}"
+#   set :environment, current_task.name
+#end
+########################################
+###           PRODUCTION TASK        ###
+########################################
+task :production do
+       set :domain,      "production.lcgosc.com"
+       set :application, "production.lcgosc.com"
+       set :deploy_to,   "/var/www/#{domain}"
+   set :environment, current_task.name
+end
+
+
+########################################
+###         SHARED RESOURCES         ###
+########################################
+
+#Please specify an array of symlinks to shared resources
+set :app_symlinks, [
+			"/media", 
+			#"/magmi/conf",
+            #"/magmi/state",
+            #"/magmi/var",
+            "/var"
+			]
+#Please specify an array of shared directories to be created
+set :app_shared_dirs, [
+			"/app", 
+			"/app/etc",
+            #"/magmi/conf",
+            #"/magmi/state",
+            #"/magmi/var",
+			"/downloader",
+			"/downloader/template",
+			"/errors",
+			"/images",
+			"/includes",
+			"/lib",
+			"/pkginfo"
+			]
+
+#Please specify an array of shared files to be symlinked
+set :app_shared_files, [
+			"/.htaccess",
+			"/app/.htaccess",
+			"/app/etc/local.xml", 
+			"/app/etc/enterprise.xml", 
+			"/downloader/.htaccess",
+			"/downloader/template/.htaccess",
+			"/errors/.htaccess",
+			"/includes/.htaccess",
+			"/lib/.htaccess",
+			"/pkginfo/.htaccess"
+			#"/magmi/.htaccess"
+			]
+

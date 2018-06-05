@@ -1,0 +1,57 @@
+---
+# all-security/tasks/security-common.yml
+
+- name: "Sending bash command logging to commands.log file -- tags: security, bash"
+  template:
+    src: 10-bash_command_logging.conf
+    dest: /etc/rsyslog.d/10-bash_command_logging.conf
+    owner: root
+    group: root
+    mode: 644
+  notify:
+    - restart rsyslogd
+  tags:
+    - security
+    - bash
+
+- name: "Setting auto-logout parameters for all users -- tags: security, bash"
+  copy:
+    src: autologout.sh
+    dest: /etc/profile.d/autologout.sh
+    owner: root
+    group: root
+    mode: 644
+  when: env_type == "PRD" or env_type == "INT" or env_type == "DMZ"
+  tags:
+    - security
+    - bash
+
+- name: "Securing /etc/securetty -- tags: security, tty"
+  file:
+    path: /etc/securetty
+    owner: root
+    group: root
+    mode: 644
+  tags:
+    - security
+    - tty
+
+- name: "Configuring fail2ban -- tags: security, fail2ban"
+  template:
+    src: jail.local
+    dest: /etc/fail2ban/jail.local
+    mode: 0644
+    owner: root
+    group: root
+  tags:
+    - security
+    - fail2ban
+
+- name: "Disabling fail2ban. (Temporarily) -- tags: security, fail2ban"
+  service:
+    name: fail2ban
+    state: stopped
+    enabled: no
+  tags:
+    - security
+    - fail2ban

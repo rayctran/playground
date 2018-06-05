@@ -1,0 +1,52 @@
+---
+# ela-elasticsearch-install/tasks/main.yml
+- name: "Downloading elastic key -- tags: elasticsearch-install"
+  apt_key:
+    url: https://packages.elastic.co/GPG-KEY-elasticsearch
+    state: present
+  tags:
+    - elasticsearch-install
+
+- name: "Adding elasticsearch repository list -- tags: elasticsearch-install"
+  apt_repository:
+    repo: deb https://packages.elastic.co/elasticsearch/2.x/debian stable main
+    state: present
+    filename: '/etc/apt/sources.list.d/elasticsearch-2.x'
+  tags:
+    - elasticsearch-install
+
+- name: "Installing ElasticSearch -- tags: elasticsearch-install"
+  apt:
+    name:
+      - elasticsearch
+    state: present
+    update_cache: yes
+  notify:
+    - enable elasticsearch
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - elasticsearch-install
+
+- name: "Copy /etc/default/elasticsearch -- tags: elasticsearch-install"
+  template: 
+    src: elasticsearch.j2 
+    dest: /etc/default/elasticsearch
+    owner: root
+    group: root
+  notify:
+    - restart elasticsearch
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - elasticsearch-install
+
+- name: "Copy /etc/elasticsearch/elasticsearch.yml -- tags: elasticsearch-install"
+  template: 
+    src: elasticsearch.yml.j2 
+    dest: /etc/elasticsearch/elasticsearch.yml
+    owner: root
+    group: elasticsearch
+  notify:
+    - restart elasticsearch
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - elasticsearch-install

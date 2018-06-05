@@ -1,0 +1,9 @@
+---
+# all-packages/tasks/main.yml
+- name: "Including Ubuntu packages"
+  include: packages-{{ ansible_distribution }}.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: "Including CentOS packages"
+  include: packages-{{ ansible_distribution }}.yml
+  when: ansible_distribution == 'CentOS'

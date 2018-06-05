@@ -1,0 +1,51 @@
+---
+# lb-lsync/tasks/main.yml
+
+- name: Checking to see if this is a Physical server
+  command: "dmidecode -s system-product-name"
+  register: platform
+  tags:
+    - lb-keepalived
+
+- debug:
+    msg: "{{ platform.stdout }}"
+  tags:
+    - lb-keepalived
+
+- debug:
+    msg: "VM system"
+#  when: platform.stdout == 'VMware Virtual Platform'
+  when: platform.stdout | match("VMware*")
+  tags:
+    - lb-keepalived
+
+- debug:
+    msg: "PowerEdge system"
+  when: platform.stdout | match("PowerEdge*")
+  tags:
+    - lb-keepalived
+
+- name: Set interface name for VMs to eth0
+  set_fact: inteface=eth0
+  when: platform.stdout | match("VMware*")
+  tags:
+    - lb-keepalived
+
+- name: Set interface name for Physical server to bond0
+  set_fact: inteface=bond0
+  when: platform.stdout | match("PowerEdge*")
+  tags:
+    - lb-keepalived
+
+- name: Set up Authorization Password
+  command: "pwgen -C -n 16 1"
+  register: passwd
+  delegate_to: localhost
+  tags:
+    - lb-keepalived
+
+- name: Set auth_pass variable
+  set_fact: auth_pass={{ passwd.stdout }}
+  tags:
+    - lb-keepalived
+

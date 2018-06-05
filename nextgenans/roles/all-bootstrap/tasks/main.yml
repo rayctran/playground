@@ -1,0 +1,15 @@
+---
+# all-bootstrap/tasks/main.yml
+- name: "Including common components"
+  include: bootstrap-common.yml
+
+- name: "Including distro common components"
+  include: bootstrap-{{ ansible_distribution }}_common.yml
+
+- name: "Including CentOS components"
+  include: bootstrap-{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml
+  when: ansible_distribution == 'CentOS'
+
+- name: "Including Ubuntu components"
+  include: bootstrap-{{ ansible_distribution }}_{{ ansible_distribution_release }}.yml
+  when: ansible_distribution == 'Ubuntu'

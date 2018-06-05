@@ -1,0 +1,22 @@
+---
+# mem-ufw/tasks/main.yml
+- name: "Configuring and enabling firewall."
+  ufw:
+    rule: allow
+    name: {{ item }}
+  with_items:
+  - ssh
+  - http
+  - https
+  - snmp
+  - nrpe
+
+# Allow all traffic from VLAN hosts.
+- ufw:
+    rule: allow
+    src: "10.0.{{ vlan }}.0/24"
+
+# Enable firewall.
+- ufw:
+    state: enabled
+    policy: deny

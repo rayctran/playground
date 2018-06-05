@@ -1,0 +1,47 @@
+---
+# all-restart/handlers/main.yml
+
+- name: Restarting SysVinit-based hosts
+  shell: /sbin/shutdown -r now "Ansible bootstrap complete. Restarting OS before continuing deployment."
+  async: 0
+  poll: 0
+  when: restart_results.stat.exists == True and ansible_distribution_release == "trusty"
+  ignore_errors: true
+  notify:
+    - Waiting for hosts to come back online
+
+- name: Restarting CentOS 6 hosts
+  shell: /sbin/shutdown -r now "Ansible bootstrap complete. Restarting OS before continuing deployment."
+  async: 0
+  poll: 0
+  when: restart_result.rc != '0' and ansible_distribution == "CentOS"
+  ignore_errors: true
+  notify:
+    - Waiting for hosts to come back online
+
+# This task is a trick for forking the reboot process so that it activates after 2 seoncds and will allow
+# Ansible to close it's session. This is considered to be a better alternative for Systemd-based servers since
+# the Systemd closes the SSH connection nearly instantaneously on reboot commands.
+- name: Restarting Systemd-based hosts
+  shell: /usr/bin/systemd-run --on-active=2 /bin/systemctl reboot
+  async: 0
+  poll: 0
+  when: restart_results.stat.exists == True and ansible_distribution_release == "xenial"
+  ignore_errors: true
+  notify:
+    - Waiting for hosts to come back online
+
+- name: Waiting for hosts to come back online
+  local_action: wait_for host={{ inventory_hostname }} port=22 state=started delay=30 timeout=1800 connect_timeout=15
+  become: false
+  when: restart_results.stat.exists == True
+  ignore_errors: true
+  changed_when: true
+  notify:
+    - Pausing while services finish starting up
+
+# This tasks gives each host some time to finish booting. In cases where another playbook follows a restart, the host
+# will be unreachable even when Ansible has detected that it's back online.
+- name: Pausing while services finish starting up
+  pause:
+    seconds: 15

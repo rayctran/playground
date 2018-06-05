@@ -1,0 +1,52 @@
+---
+# all-bootstrap/tasks/bootstrap-CentOS_6.yml
+- name: "Installing NTP service -- tags: bootstrap, ntp"
+  yum:
+    update_cache: yes
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - ntp
+    - ntpdate
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Making sure NTP is started and enabled to start at boot -- tags: bootstrap, ntp"
+  service:
+    name: ntpd
+    state: started
+    enabled: yes
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Updating NTP configuration file to use datacenter NTP servers -- tags: bootstrap, ntp"
+  copy:
+    src: ntp.conf
+    dest: /etc/ntp.conf
+    force: yes
+  tags:
+    - bootstrap
+    - ntp
+
+- name: "Remove /etc/localtime file if it  exists -- tags: bootstrap, ntp"
+  file:
+    path: /etc/localtime
+    state: absent
+  tags:
+    - bootstrap
+    - ntp
+
+
+- name: "Setting the timezone to America/Chicago -- tags: bootstrap, ntp"
+  file:
+    path: /etc/localtime
+    src: /usr/share/zoneinfo/America/Chicago
+    owner: root
+    group: root
+    mode: 0777
+    state: link
+  tags:
+    - bootstrap
+    - ntp

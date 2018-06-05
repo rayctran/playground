@@ -1,0 +1,27 @@
+---
+# web-newrelic_php/tasks/main.yml
+- name: "Adding New Relic repository key."
+  apt-key:
+   url: https://download.newrelic.com/548C16BF.gpg
+   state: present
+
+- name: "Adding New Relic repository to source list."
+  apt_repository:
+    repo: 'deb http://apt.newrelic.com/debian/ newrelic non-free'
+    state: present
+    update_cache: yes
+
+- name: "Installing New Relic package."
+  apt:
+    name: newrelic-php5
+    state: present
+
+- name: "Copying New Relic templates."
+  template:
+    src: /templates/newrelic.ini.j2
+    dest: /etc/php5/mods-available/newrelic.ini
+    owner:
+    group:
+    mode:
+  notify:
+    - restart apache2

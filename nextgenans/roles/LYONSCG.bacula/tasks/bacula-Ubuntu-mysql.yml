@@ -1,0 +1,40 @@
+---
+# LYONSCG.bacula/tasks/bacula-Ubuntu_trusty-DB.yml
+- name: Cloning SysAdmin Scripts Git repo for MySQL DB servers
+  git:
+    repo: git@bitbucket.org:lyonsconsultinggroup/sysadmin-scripts.git
+    dest: files/sysadmin-scripts
+    accept_hostkey: yes
+    force: yes
+    update: yes
+  delegate_to: 127.0.0.1
+
+- name: Copying backup script to MySQL DB servers
+  copy:
+    src: sysadmin-scripts/bacula/mysql_weekly_incremental.sh
+    dest: /etc/bacula/scripts/mysql_weekly_incremental.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Putting MySQL root credentials in place
+  blockinfile:
+    create: yes
+    state: present
+    dest: /root/.my.cnf
+    owner: root
+    group: root
+    mode: 0600
+    block: |
+      [xtrabackup]
+      username=root
+      password={{ mysql_root_password }}
+      target_dir=/var/lib/mysql_backups
+
+- name: Create directory to hold local backup files
+  file:
+    state: directory
+    dest: /var/lib/mysql_backups
+    owner: root
+    group: root
+    mode: 0755

@@ -1,0 +1,27 @@
+---
+# handlers file for LYONSCG.bacula
+- name: restart bacula-fd
+  service:
+    name: bacula-fd
+    state: restarted
+
+- name: reload bacula-director
+  service:
+    name: bacula-director
+    state: reloaded
+  run_once: true
+  delegate_to: 10.0.1.25
+
+- name: schedule restore
+  include: restore.yml
+
+- name: test comms
+  shell: "echo 'estimate listing job={{ ansible_hostname }}' | bconsole | grep OK"
+  changed_when: False
+  register: listing_results
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+
+- name: listing results
+  debug: msg={{ listing_results.stdout }}

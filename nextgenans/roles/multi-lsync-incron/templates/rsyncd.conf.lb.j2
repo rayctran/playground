@@ -1,0 +1,7 @@
+[haproxy]
+   path = /etc/haproxy
+   uid = root
+   gid = root
+   read only = no
+   list = yes
+   hosts allow = {{ lsync_master }}

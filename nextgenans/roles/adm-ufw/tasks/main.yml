@@ -1,0 +1,22 @@
+---
+# adm-ufw/tasks/main.yml
+- name: "Configuring the firewall."
+  ufw:
+    rule: allow
+    name: "{{ item }}"
+  with_items:
+  - ssh
+  - http
+  - https
+  - snmp
+  - nrpe
+
+- name: "Allowing all traffic from other VLAN hosts."
+  ufw:
+    rule: allow
+    src: "10.0.{{ vlan }}.0/24"
+
+- name: "Enabling the firewall and setting the policy."
+  ufw:
+    state: enabled
+    policy: deny

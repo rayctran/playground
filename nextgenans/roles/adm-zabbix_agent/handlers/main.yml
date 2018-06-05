@@ -1,0 +1,16 @@
+---
+# adm-zabbix_agent/handlers/main.yml
+- name: restart zabbix-agent
+  service:
+    name: zabbix-agent
+    state: restarted
+
+- name: reload apache2
+  service:
+    name: apache2
+    state: reloaded
+
+- name: reload httpd
+  service:
+    name: httpd
+    state: reloaded

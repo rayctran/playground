@@ -1,0 +1,110 @@
+# Relocate MySQL data directory to /data/mysql
+- name: stop mysql
+  service:
+    name: mysql
+    state: stopped
+
+- name: Checking to see if this is a Physical server
+  command: "dmidecode -s system-product-name"
+  register: platform
+
+- debug:
+    msg: "VM system"
+#  when: platform.stdout == 'VMware Virtual Platform'
+  when: platform.stdout | match("VMware Virtual Platform")
+
+- debug:
+    msg: "PowerEdge system"
+  when: platform.stdout | match("PowerEdge*")
+
+- name: Checking /data directory
+  stat:
+    path: /data
+  register: data_dir
+
+- debug:
+    msg: "/data exists"
+  when: data_dir.stat.exists == True
+
+- debug:
+    msg: "/data exists"
+  when: data_dir.stat.exists == False
+
+- name: Check mount point /data
+  command: /bin/mountpoint /data
+  register: mount_stat
+  failed_when: False
+  changed_when: False
+  when: data_dir.stat.exists == True
+
+- debug:
+    msg: "{{ mount_stat.stdout }}"
+  when: data_dir.stat.exists == True
+
+#- debug:
+#    msg: "/data is a mountpoint"
+#  when: mount_stat.stdout | match("* is a mountpoint") and data_dir.stat.exists == True and platform.stdout | match("PowerEdge*")
+#
+#- debug:
+#    msg: "/data is not a mountpoint"
+#  when: mount_stat.stdout | match("* is not a mountpoint") and data_dir.stat.exists == True and platform.stdout | match("PowerEdge*")
+
+- name: Exit out if it's a Physical server and /data is not a mount point
+  fail:
+    msg: "Physical server detected with missing or incorrect /data mount point. Please set up this mount point then re-run the playbook"
+  when: (data_dir.stat.exists == False or mount_stat.stdout == "/data is not a mountpoint") and  platform.stdout | match("PowerEdge*")
+
+- name: Create /data on VM if it doesn't exits
+  file:
+    path: /data
+    state: directory
+    mode: 755
+    owner: root
+    group: root
+  when: 
+    - data_dir.stat.exists == False 
+    - platform.stdout | match("VMware*")
+
+- name: Move mysql from /var/lib/mysql to /data
+  command: mv /var/lib/mysql /data
+
+- name: Make sure that the /data/mysql has the right owner and permission
+  file:
+    path: /data/mysql
+    state: directory
+    mode: 0700
+    recurse: yes
+    owner: mysql
+    group: mysql
+  
+- name: Create symlink from /var/lib/mysql to /data/mysql
+  file:
+    src: /data/mysql
+    dest: /var/lib/mysql
+    state: link
+ 
+- name: Setting up apparmor tunrables alias
+  copy:
+    src: apparmor_alias
+    dest: /etc/apparmor.d/tunables/alias
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+ 
+- name: Setting up apparmor usr.sbin.mysqld
+  copy:
+    src: apparmor_mysqld
+    dest: /etc/apparmor.d/local/usr.sbin.mysqld
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+
+- name: Reload apparmor
+  command: /etc/init.d/apparmor reload
+
+- name: start mysql
+  service:
+    name: mysql
+    state: started

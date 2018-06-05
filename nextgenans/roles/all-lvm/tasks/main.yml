@@ -1,0 +1,265 @@
+---
+# tasks/main.yml
+- meta: end_play
+  when: ansible_distribution == 'CentOS'
+
+- name: "Checking to see if this is a Physical server -- tags: lvm"
+  command: "dmidecode -s system-product-name"
+  changed_when: False
+  register: platform
+  tags:
+    - lvm
+
+- debug:
+    msg: "{{ platform.stdout }}"
+  tags:
+    - lvm
+
+- debug:
+    msg: "VM system"
+#  when: platform.stdout == 'VMware Virtual Platform'
+  when: platform.stdout | match("VMware*")
+  tags:
+    - lvm
+
+- debug:
+    msg: "PowerEdge system"
+  when: platform.stdout | match("PowerEdge*")
+  tags:
+    - lvm
+
+#- name: Capture current drives
+#  command: ls -1 /dev/sd* > /tmp/ans_lvm_sd_before.txt
+#  when: platform.stdout | match("VMware*")
+#  tags:
+#    - lvm
+
+- name: "Determining if LVM is present on Ubuntu -- tags: lvm"
+  shell: dpkg --get-selections | grep -c lvm2 | sed 's/1/True/'
+  register: lvm_present
+  changed_when: false
+  when: ansible_distribution == "Ubuntu" and platform.stdout | match("VMware*")
+  tags:
+    - lvm
+
+- name: "Determining if LVM is present on CentOS -- tags: lvm"
+  yum:
+    list: lvm2
+  register: lvm_present
+  changed_when: false
+  when: ansible_distribution == "CentOS" and platform.stdout | match("VMware*")
+  tags:
+    - lvm
+
+- name: "Rescanning SCSI for new drives -- tags: lvm"
+  shell: for I in `ls -1 /sys/class/scsi_host/`; do echo "- - -" > /sys/class/scsi_host/$I/scan; done
+  changed_when: false
+  when: 
+    - platform.stdout | match("VMware*")
+    - lvm_present
+  tags:
+    - lvm
+
+- name: "Determining if there is a new drive present -- tags: lvm"
+  stat:
+    path: /dev/sdb
+  register: sdb
+  when: 
+    - platform.stdout | match("VMware*")
+  tags:
+    - lvm
+
+- name: "Set LVM operation to none for physical servers  -- tags: lvm"
+  set_fact: lvm_operation=none
+  when: 
+    - platform.stdout | match("PowerEdge*")
+  tags:
+    - lvm
+
+- name: "Set LVM operation to none if sdb isk is not detected  -- tags: lvm"
+  set_fact: lvm_operation=none
+  when: 
+    - platform.stdout | match("VMware*") 
+    - sdb.stat.exists == False
+  tags:
+    - lvm
+
+- name: "Set LVM operation to extend for none DB servers VMs with sdb -- tags: lvm"
+  set_fact: lvm_operation=extend
+  when: 
+    - platform.stdout | match("VMware*") 
+    - sdb.stat.exists 
+    - "'DB' not in group_names"
+  tags:
+    - lvm
+
+- name: "Set LVM operation to none for Web servers because of gluster -- tags: lvm"
+  set_fact: lvm_operation=none
+  when: 
+    - platform.stdout | match("VMware*") 
+    - sdb.stat.exists
+    - "'WEB' in group_names or 'ADM' in group_names or 'HYB' in group_names"
+  tags:
+    - lvm
+
+- name: "Set LVM operation to add DB servers -- tags: lvm"
+  set_fact: lvm_operation=add
+  when:
+    - platform.stdout | match("VMware*") 
+    - sdb.stat.exists
+    - "'DB' in group_names"
+  tags:
+    - lvm
+
+- debug:
+    msg: "LVM Operation is set to {{ lvm_operation }}"
+  tags:
+    - lvm
+
+- name: "Extending the volume group to the new drive -- tags: lvm"
+  lvg:
+    vg: vg0
+    pvs: /dev/sda2,/dev/sdb
+  when: lvm_operation == "extend"
+  register: vg_result
+  tags:
+    - lvm
+
+# This module does not current support lvextend(8)
+#- name: "Extending lv_root over the new drive -- tags: lvm"
+#  lvol:
+#    vg: vg0
+#    lv: lv_root
+#    size: +100%FREE
+#    opts: "-l"
+#  when: lvm_present and sdb.stat.exists
+#  tags:
+#    - lvm
+
+# Temporary replacement
+#- name: "Extending lv_root over the new drive -- tags: lvm"
+#  command: lvextend -l +100%FREE /dev/vg0/lv_root
+#  when: 
+#    - lvm_present and sdb.stat.exists and vg_result.changed
+#    - platform.stdout | match("VMware*")
+#    - inventory_hostname not in groups['WEB']
+#    - inventory_hostname not in groups['DB']
+#  tags:
+#    - lvm
+
+- name: "Extending lv_root over the new drive -- tags: lvm"
+  lvol:
+    vg: vg0
+    lv: lv_root
+    size: +100%FREE
+  when: 
+    - lvm_operation == "extend"
+    - vg_result.changed
+  tags:
+    - lvm
+
+- name: "Resizing the filesystem -- tags: lvm"
+  filesystem:
+    fstype: ext4
+    dev: /dev/vg0/lv_root
+    resizefs: yes
+  when: 
+    - lvm_operation == "extend"
+    - vg_result.changed
+  tags:
+    - lvm
+
+#  debug:
+#    msg: "{{ hostvars[inventory_hostname] }}"
+#  tags:
+#    - lvm
+
+
+#- name: My Debug start here
+#  debug:
+#    msg: "Checking to see if Ansible is not blind {{ sdb.stat.exists }}"
+#  when: lvm_operation == "add"
+#  tags:
+#    - lvm
+
+- name: "Checking to see if /dev/sdb1 exists already as a partition -- tags: lvm"
+  command: fdisk -l /dev/sdb1
+  register: fdisk_chk
+  when: lvm_operation == "add"
+  tags:
+    - lvm
+
+- name: "fdisk -- tags: lvm"
+  debug:
+    msg: " Err - {{ fdisk_chk.stderr }}. STD - {{ fdisk_chk.stdout }} "
+  when: lvm_operation == "add"
+  tags:
+    - lvm
+
+- name: "Create a new primary partition on sdb -- tags: lvm"
+  command: "parted -s -a optimal /dev/sdb mklabel msdos -- mkpart primary ext4 0% 100%"
+  when:
+    - lvm_operation == "add"
+    - fdisk_chk.stderr | match("fdisk*")
+  tags:
+    - lvm
+
+- name: "Create New Physical Volume of /dev/sdb -- tags: lvm"
+  command: "pvcreate /dev/sdb1"
+  register: pvcreate_out
+  when:
+    - lvm_operation == "add"
+    - fdisk_chk.stderr | match("fdisk*")
+  tags:
+    - lvm
+
+- name: "Create New Volume Group vg1 from /dev/sdb1 -- tags: lvm"
+  command: "vgcreate vg1 /dev/sdb1"
+  register: vgcreate_out
+  when:
+    - lvm_operation == "add"
+    - fdisk_chk.stderr | match("fdisk*")
+  tags:
+    - lvm
+
+- name: "Create New Logical Volume -- tags: lvm"
+  command: "lvcreate -l 100%FREE -n lv_data vg1"
+  register: lvcreate_out
+  when:
+    - lvm_operation == "add"
+    - fdisk_chk.stderr | match("fdisk*")
+  tags:
+    - lvm
+
+- name: "Make a filesystem out of the new LVM volume -- tags: lvm"
+  filesystem:
+    fstype: ext4
+    dev: /dev/mapper/vg1-lv_data
+  when:
+    - lvm_operation == "add"
+    - fdisk_chk.stderr | match("fdisk*")
+  tags:
+    - lvm
+
+- name: "Mount vg1-lv_data Volume -- tags: lvm"
+  mount:
+    name: /data
+    src: /dev/mapper/vg1-lv_data
+    fstype: ext4
+    state: mounted
+  when:
+    - lvm_operation == "add"
+    - fdisk_chk.stderr | match("fdisk*")
+  tags:
+    - lvm
+
+# Notes for future iterations
+#
+# -- Finding a new drive dynamically
+# Get list of /dev/sd* and register as disks_before
+# Rescan SCSI
+# Get new list of /dev/sd* and register as disks_after
+# Compare lists with {{ disks_after | difference(disks_before) }}
+# Take differences and run through the tasks with each.
+# May have to utilize 'var.stdout_lines' to separate output from each list
+#

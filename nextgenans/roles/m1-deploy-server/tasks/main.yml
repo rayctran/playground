@@ -1,0 +1,97 @@
+---
+# m1-depoy-server/tasks/main.yml
+
+- name: Check to see if deploy user already exists
+  command: bash -c "/usr/bin/getent passwd deploy | wc -l"
+  register: deploy_user
+  tags:
+    - m1-deploy-server
+
+- name: Deploy user exists
+  debug:
+    msg: "Deploy user exists"
+  when: deploy_user.stdout == "1"
+  tags:
+    - m1-deploy-server
+
+- name: Deploy user does not exists
+  debug:
+    msg: "Deploy user does not exists"
+  when: deploy_user.stdout == "0"
+  tags:
+    - m1-deploy-server
+  
+
+- name: Check to see if deployment dashboard site already exists
+  stat:
+    path: /etc/apache2/sites-available/capapp.conf
+  register: capapp
+  tags:
+    - m1-deploy-server
+
+- name: Deploy dashboard app installed
+  debug:
+    msg: "Deploy dashboard app installed"
+  when: capapp.stat.exists == True
+  tags:
+    - m1-deploy-server
+
+- name: Deploy dashboard app not-installed
+  debug:
+    msg: "Deploy dashboard app not installed"
+  when: capapp.stat.exists == False
+  tags:
+    - m1-deploy-server
+
+- name: Set up local deploy user's ssh
+  file:
+    path: /home/deploy/.ssh
+    state: directory
+  delegate_to: localhost
+  when: capapp.stat.exists == True
+  tags:
+    - m1-deploy-server
+
+- name: "Install extra mod_php 5.5 on Ubuntu 14.04"
+  include: php-{{ ansible_distribution }}_{{ ansible_distribution_release }}-mod_php.yml
+  when: 
+    - capapp.stat.exists == False
+    - ansible_distribution == 'Ubuntu' 
+    - ansible_distribution_release == 'trusty'
+  tags:
+    - m1-deploy-server
+
+- name: "Install extra mod_php 7.0 on Ubuntu 16.04"
+  include: php-{{ ansible_distribution }}_{{ ansible_distribution_release }}-mod_php.yml
+  when: 
+    - capapp.stat.exists == False
+    - ansible_distribution == 'Ubuntu' 
+    - ansible_distribution_release == 'xenial'
+  tags:
+    - m1-deploy-server
+
+- name: Deploy user exists so we're going to get the ssh creds 
+  fetch:
+    src: /home/deploy/.ssh/{{ item }}
+    dest: /home/deploy/.ssh/
+    flat: yes
+  with_items:
+    - id_rsa.pub
+    - id_rsa
+    - authorized_keys
+    - known_hosts
+  when: deploy_user.stdout == "1"
+  tags:
+    - m1-deploy-server
+
+- name: Set Up deploy user on Server
+  include: setup_deploy_user.yml
+  when: deploy_user.stdout == "0"
+  tags:
+    - m1-deploy-server
+
+- name: Set Up the applications and configuration 
+  include: setup_deploy_apps.yml
+  when: capapp.stat.exists == False
+  tags:
+    - m1-deploy-server

@@ -1,0 +1,40 @@
+---
+# multi-zabbix_agent/tasks/main.yml
+
+- name: Set Zabbix server for PRD
+  set_fact:
+    zabbix_server: "{{ prd_zabbix_server }}"
+  when: env_type | match('PRD|DMZ')
+  tags:
+    - zabbix-agent
+
+- name: Set Zabbix server for STG
+  set_fact:
+    zabbix_server: "{{ stg_zabbix_server }}"
+  when: env_type | match("STG")
+  tags:
+    - zabbix-agent
+
+- name: Set Zabbix Proxy server for PRD
+  set_fact:
+    zabbix_proxy_server: "{{ prd_zabbix_proxy_server }}"
+  when: env_type | match('PRD|DMZ')
+  tags:
+    - zabbix-agent
+
+- name: Set Zabbix server for STG
+  set_fact:
+    zabbix_proxy_server: "{{ stg_zabbix_proxy_server }}"
+  when: env_type | match("STG")
+  tags:
+    - zabbix-agent
+
+- include: "Ubuntu.yml"
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - zabbix-agent
+
+- include: "CentOS.yml"
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - zabbix-agent

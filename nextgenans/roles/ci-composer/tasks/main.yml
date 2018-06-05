@@ -1,0 +1,22 @@
+---
+# ci-composer/tasks/main.yml
+- name: "Installing composer"
+  command: curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin/ --filename=composer
+  args:
+    creates: /usr/local/bin/composer
+  register: install_result
+  failed_when: "'The download failed repeatedly, aborting.' in install_result.stderr"
+
+- name: "Setting global requirements for composer"
+  command: composer global require "{{ item }}"
+  with_items:
+    - "pdepend/pdepend=*"
+    - "phploc/phploc=*"
+    - "phpmd/phpmd=*"
+    - "phpunit/phpunit=*"
+    - "sebastian/phpcpd=*"
+    - "squizlabs/php_codesniffer=*"
+    - "theseer/phpdox=*"
+  register: require_result
+  changed_when: "'Writing lock file' in require_result.stdout"
+  failed_when: "'Installation failed' in require_result.stderr"

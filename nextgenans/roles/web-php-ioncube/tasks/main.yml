@@ -1,0 +1,33 @@
+---
+# web-php-ioncube/tasks/main.yml
+
+- name: "Fetching and unpacking ionCube tarball -- tags: ioncube"
+  unarchive:
+    src: http://downloads2.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
+    dest: /tmp/
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: yes
+  tags:
+    - ioncube
+
+- name: "Using CentOS 6 tasks"
+  include: "{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml"
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - ioncube
+
+- name: "Using Ubuntu trusty tasks"
+  include: "{{ ansible_distribution }}_{{ ansible_distribution_release }}.yml"
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - ioncube
+
+- name: "Cleaning up /tmp/ioncube -- tags: ioncube"
+  file:
+    path: /tmp/ioncube
+    state: absent
+  tags:
+    - ioncube
+    

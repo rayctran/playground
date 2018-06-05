@@ -1,0 +1,72 @@
+---
+# db-mysql-db-config/tasks/main.yml
+
+# Pull in the credentials
+#- name: Get the variables from an existing file
+#  include_vars: "/usr/local/ansible/mysql/{{ client_code }}_mysql_creds.yml"
+#  tags:
+#    - mysql-db-config
+
+- name: Set the root password for Dev and Stage
+  set_fact:
+    mysql_root_password: "{{ devstg_root_password }}"
+  when: env_type | match("DEV|STG")
+  tags:
+    - mysql-db-config
+
+- name: Set the dbuser password for Dev and Stage
+  set_fact:
+    mysql_dbuser_password: "{{ devstg_dbuser_password }}"
+  when: env_type | match("DEV|STG")
+  tags:
+    - mysql-db-config
+
+- name: Set the root password for Production
+  set_fact:
+    mysql_root_password: "{{ prd_root_password }}"
+  when: env_type | match("PRD")
+  tags:
+    - mysql-db-config
+
+- name: Set the dbuser password for Production
+  set_fact:
+    mysql_dbuser_password: "{{ prd_dbuser_password }}"
+  when: env_type | match("PRD")
+  tags:
+    - mysql-db-config
+
+- name: Setting the database name
+  set_fact:
+    mysql_db_name: "{{ client_code }}{{ env_type }}{{ app_type }}"
+  tags:
+    - mysql-db-config
+
+- name: Setting the database user
+  set_fact:
+    mysql_user: "{{ client_code }}{{ env_type }}{{ app_type }}dbuser"
+  tags:
+    - mysql-db-config
+
+- name: Set up VLAN Information so we can use it to create the users in PRD
+  shell: echo {{ inventory_hostname }} | cut -d "." -f -3
+  register: vlan
+  tags:
+    - mysql-db-config
+
+- name: Setting my_current_vlan 
+  set_fact:
+    my_current_vlan: "{{ vlan.stdout }}"
+  tags:
+    - mysql-db-config
+
+- name: Debugging my_current_vlan
+  debug:
+    msg: "{{ my_current_vlan }}"
+  tags:
+    - mysql-db-config
+
+- name: Pulling in the correct playbook based on the environment and application
+  include: "{{ app_type }}.yml"
+  when: app_type | match ("M1|M2|HYB")
+  tags:
+    - mysql-db-config

@@ -1,0 +1,20 @@
+---
+# web-postfix/tasks/main.yml
+- name: "Installing Postfix"
+  apt:
+    name: postfix
+    state: present
+  notify:
+    - restart postfix
+
+- lineinfile:
+    dest: /etc/postfix/main.cf
+    line: "smtp_generic_maps = hash:/etc/postfix/generic"
+    insertafter: EOF
+    state: present
+  notify:
+    - restart postfix
+
+- template:
+    src: generic.j2
+    dest: /etc/postfix/generic

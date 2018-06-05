@@ -1,0 +1,12 @@
+---
+# red-redis/handlers/main.yml
+- name: restart redis
+  service:
+    name: redis-server
+    state: restarted
+
+- name: reload sysctl
+  command: sysctl --system
+
+- name: hugepage
+  command: echo 'never' | sudo tee /sys/kernel/mm/transparent_hugepage/enabled

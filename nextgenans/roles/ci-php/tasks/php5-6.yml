@@ -1,0 +1,89 @@
+---
+# adm-php/tasks/php5-6.yml
+
+- name: "Ensuring that the PHP 5.6 repo is installed"
+  apt-repository:
+    repo: "ppa:ondrej/php5-5.6"
+    state: present
+
+- name: "Installing PHP 5.6 packages"
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    state: latest
+  with_items:
+    - php5
+    - php5-cli
+    - php5-curl
+    - php5-gd
+    - php5-intl
+    - php5-mcrypt
+    - php5-mhash
+    - php5-mysql
+    - php5-xsl
+    - libapache2-mod-php5
+  notify:
+    - restart apache
+
+- name: "Enabling PHP Modules"
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - php5
+  notify:
+    - restart apache
+
+- name: "Hide PHP, set expose_php to off"
+  lineinfile:
+    dest: /etc/php5/apache2/php.ini
+    regexp: "expose_php = On"
+    line: "expose_php = Off"
+    state: present
+  notify:
+    - restart apache
+
+- name: "Changing Default Time Zone"
+  lineinfile:
+    dest: /etc/php5/apache2/php.ini
+    regexp: ";date.timezone ="
+    line: "date.timezone = America/Chicago"
+    state: present
+  notify:
+    - restart apache
+
+- name: "Changing post_max_size"
+  lineinfile:
+    dest: /etc/php5/apache2/php.ini
+    regexp: "post_max_size = 8M"
+    line: "post_max_size = 20M"
+    state: present
+  notify:
+    - restart apache
+
+- name: "Changing upload_max_filesize"
+  lineinfile:
+    dest: /etc/php5/apache2/php.ini
+    regexp: "upload_max_filesize = 2M"
+    line: "upload_max_filesize = 20M"
+    state: present
+  notify:
+    - restart apache
+
+- name: "Changing gc_maxlifetime"
+  lineinfile:
+    dest: /etc/php5/apache2/php.ini
+    regexp: "session.gc_maxlifetime = 1440"
+    line: "session.gc_maxlifetime = 86400"
+    state: present
+  notify:
+    - restart apache
+
+- name: "Changing max_execution_time"
+  lineinfile:
+    dest: /etc/php5/apache2/php.ini
+    regexp: "max_execution_time = 30"
+    line: "max_execution_time = 18000"
+    state: present
+  notify:
+    - restart apache

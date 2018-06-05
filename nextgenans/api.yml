@@ -1,0 +1,21 @@
+#!/usr/bin/env ansible-playbook
+---
+# api.yml
+
+- hosts: API
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - multi-apache
+    - web-php
+    - multi-lcgosc-cert
+#    - api-balance
+#    - api-magento
+#    - adm-zabbix_agent
+#    - adm-graylog_collector
+#    - adm-ufw

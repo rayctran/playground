@@ -1,0 +1,149 @@
+---
+# m1-depoy-client/tasks/main.yml
+
+#- name: "Set Up capdeploy directory" 
+#  file:
+#    path: /var/www/capdeploy
+#    state: directory
+#    mode: 0755
+#    owner: www-data 
+#    group: www-data 
+
+- name: "Set Up deploy user -- tags: m1-deploy-client"
+  user:
+    name: deploy
+    uid: 1001
+    state: present
+  tags:
+    - m1-deploy-client
+
+- name: "Set up deploy user's ssh directory -- tags: m1-deploy-client"
+  file:
+    path: /home/deploy/.ssh
+    owner: deploy
+    group: deploy
+    mode: 0700
+    state: directory
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-client
+
+- name: "Copy rsa keys from the local deploy user to the remote server -- tags: m1-deploy-client"
+  copy:
+    src: /home/deploy/.ssh/id_rsa
+    dest: /home/deploy/.ssh/id_rsa
+    mode: 0600
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-client
+
+- name: "Copy rsa public keys -- tags: m1-deploy-client"
+  copy:
+    src: /home/deploy/.ssh/id_rsa.pub
+    dest: /home/deploy/.ssh/id_rsa.pub
+    mode: 0644
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-client
+
+- name: "Setup deploy user authorized key -- tags: m1-deploy-client"
+  copy:
+    src: /home/deploy/.ssh/id_rsa.pub
+    dest: /home/deploy/.ssh/authorized_keys
+    mode: 0644
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-client
+
+
+#Cheating by adding signature of bitbucket
+- name: "Setup deploy user known_hosts -- tags: m1-deploy-client"
+  copy:
+    src: known_hosts
+    dest: /home/deploy/.ssh/known_hosts
+    mode: 0600
+    owner: deploy
+    group: deploy
+  tags:
+    - m1-deploy-client
+
+- name: "Setting Up Sudoers Permission -- tags: m1-deploy-client"
+  copy:
+    src: 02-dashboard
+    dest: /etc/sudoers.d/02-dashboard
+    owner: root
+    group: root
+    mode: 0440
+  tags:
+    - m1-deploy-client
+
+- name: "Set Up Web Area .ssh directory Ubuntu -- tags: m1-deploy-client"
+  file:
+    path: /var/www/.ssh
+    state: directory
+    mode: 0700
+    owner: www-data
+    group: www-data
+    recurse: yes
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - m1-deploy-client
+
+- name: "Copying ssh authorized key from deploy user to web are Ubuntu -- tags: m1-deploy-client"
+  copy: 
+    src: /home/deploy/.ssh/authorized_keys
+    dest: /var/www/.ssh/authorized_keys
+    owner: www-data
+    group: www-data
+    mode: 0644
+    remote_src: yes
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - m1-deploy-client
+
+- name: "Set Up Web Area .ssh directory CentOS -- tags: m1-deploy-client"
+  file:
+    path: /var/www/.ssh
+    state: directory
+    mode: 0700
+    owner: apache
+    group: apache
+    recurse: yes
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - m1-deploy-client
+
+- name: "Copying ssh authorized key from deploy user to web are CentOS -- tags: m1-deploy-client"
+  copy: 
+    src: /home/deploy/.ssh/authorized_keys
+    dest: /var/www/.ssh/authorized_keys
+    owner: apache
+    group: apache
+    mode: 0644
+    remote_src: yes
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - m1-deploy-client
+
+- name: "Set ACL  -- tags: m1-deploy-client"
+  acl:
+    path: /var/www
+    entity: deploy
+    etype: user
+    permissions: rwx
+    state: present
+  tags:
+    - m1-deploy-client
+
+- name: "Add app line in deploy.rb -- tags: m1-deploy-client"
+  lineinfile:
+    path: /var/www/capdeploy/config/deploy.rb
+    line: "role :web, \'{{ inventory_hostname }}\'"
+    insertafter: '^#role :app'
+  delegate_to: "{{ groups['M1DD'][0] }}"
+  tags:
+    - m1-deploy-client

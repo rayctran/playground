@@ -1,0 +1,14 @@
+#!/usr/bin/env ansible-playbook
+---
+# docker.yml
+
+- hosts: DKR
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - LYONSCG.docker

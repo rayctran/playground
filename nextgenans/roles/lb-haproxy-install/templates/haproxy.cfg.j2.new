@@ -1,0 +1,205 @@
+global
+
+    # Parameters in the "global" section are process-wide and often OS-specific. They are generally set once for all and
+    # do not need being changed once correct.
+
+    ##### PROCESS SETTINGS
+    log 10.0.1.160:11002 local0
+    chroot /var/lib/haproxy
+    stats socket /run/haproxy/admin.sock user root group zabbix mode 775 level admin
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
+    maxconn 8192
+    stats socket /etc/haproxy/stats
+
+    ##### SSL CONFIGURATION
+    ca-base /etc/ssl/certs
+    crt-base /etc/ssl/private
+    ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS
+    ssl-default-bind-options no-sslv3
+    tune.ssl.default-dh-param 2048
+
+
+defaults
+
+    # The "defaults" section sets default parameters for all other sections following its declaration. Those default
+    # parameters are reset by the next "defaults" section.
+
+    ##### OPTIONS
+    log     global
+    mode    http
+    option  httplog
+    option  dontlognull
+    option  http-server-close
+    option  redispatch
+
+    ##### TIMEOUTS
+    timeout connect 4s
+    timeout client  20s
+    timeout server  30s
+    timeout http-request 10s
+    timeout http-keep-alive 4s
+    timeout tunnel 2m
+    timeout client-fin 1s
+    timeout server-fin 1s
+
+    ##### ERROR FILES
+    errorfile 400 /etc/haproxy/errors/400.http
+    errorfile 403 /etc/haproxy/errors/403.http
+    errorfile 408 /etc/haproxy/errors/408.http
+    errorfile 500 /etc/haproxy/errors/500.http
+    errorfile 502 /etc/haproxy/errors/502.http
+    errorfile 503 /etc/haproxy/errors/503.http
+    errorfile 504 /etc/haproxy/errors/504.http
+
+
+frontend http-in
+
+    ##### OPTIONS
+    bind *:80
+    default_backend visitors-site-insecure
+
+    ##### HEADERS
+    htpp-request add-header X-Forwared-Proto http
+    http-response add-header X-Load-Balancer {{ ansible_hostname }}
+
+    ##### ACCESS CONTROL LISTS
+    # Admin panel traffic
+    acl adminpanel path_beg /admin
+    acl adminpanel path_beg /index.php/admin
+    use_backend admin-site if adminpanel
+
+    # API traffic
+    acl api path_beg /api/xmlrpc
+    acl api path_beg /api/soap
+    acl api path_beg /api/v2_soap
+    use_backend api-site if api
+
+    # Rate-limit bots
+    acl badcrawlerbots hdr_sub(user-agent) -i -f /etc/haproxy/bad_bot_agent_strings.txt
+    use_backend badbots if badcrawlerbots
+
+{% if groups['WHL'][0] is defined %}
+    # Capacity Page
+    acl maxcapacity table_cnt(visitors-site-insecure) ge 2500
+    acl knownuser hdr_sub(Cookie) frontend
+    use_backend failwhale-site if maxcapacity !knownuser
+
+{% endif %}
+    ##### REDIRECTS
+
+
+frontend https-in
+
+    ##### OPTIONS
+    mode http
+    bind *:443 ssl crt /etc/ssl/certs/wc.lcgosc.com.combined.crt
+    default_backend visitors-site-secure
+    option httpclose
+    option http-server-close
+    option forwardfor
+
+    ##### HEADERS
+    http-request add-header X-Forwarded-Proto https
+    http-request add-header X-Forwarded-Port 443
+    http-request add-header SSL_OFFLOADED 1
+    http-response add-header X-Load-Balancer: {{ ansible_hostname }}
+
+    ##### ACCESS CONTROL LISTS
+    # Admin panel traffic
+    acl adminpanel path_beg /admin
+    acl adminpanel path_beg /index.php/admin
+    use_backend admin-site if adminpanel
+
+    # API traffic
+    acl api path_beg /api/xmlrpc
+    acl api path_beg /api/soap
+    acl api path_beg /api/v2_soap
+    use_backend api-site if api
+
+    ##### REDIRECTS
+    redirect scheme https code 301 if !{ ssl_fc }
+
+
+backend visitors-site-insecure
+
+    ##### OPTIONS
+    balance roundrobin
+    option httpclose
+    option forwardfor
+    option http-server-close
+
+    ##### SESSIONS
+    stick-table type string len 32 size 10K expire 10m nopurge
+    stick store-response set-cookie(frontend)
+    stick store-request cookie(frontend)
+
+    ##### SERVERS
+    server {{ varnish }} {{ varnish_ip }} check port 80 weight 128
+    server web02 {{ WEB-02_ip check port 80 weight 10 backup
+
+
+backend badbots
+
+    ##### OPTIONS
+    mode http
+    option httpclose
+    option forwardfor
+    option http-server-close
+
+    ##### RATE-LIMITING
+    acl too_fast be_sess_rate gt 1
+    acl too_many be_conn gt 5
+    tcp-request inspect-delay 10s
+    tcp-request content accept if ! too_fast or ! too_many
+    tcp-request content accept if WAIT_END
+
+    ##### SERVERS
+    server {{ varnish }} {{ varnish_ip}} check port 80 maxconn 10
+
+
+backend visitors-site-secure
+
+    ##### OPTIONS
+    balance roundrobin
+    mode http
+
+    ##### SERVERS
+    server web01 10.0.75.30:443 check port 443 ssl verify none force-tlsv12 weight 100
+    server web02 10.0.75.31:443 check port 443 ssl verify none force-tlsv12 weight 100
+
+
+backend admin-site
+
+    ##### OPTIONS
+    balance roundrobin
+    mode http
+
+    #enter the IP of your application here
+    server web01 10.0.75.30:443 check port 443 ssl verify none force-tlsv12 weight 100
+    server web02 10.0.75.31:443 check port 443 ssl verify none force-tlsv12 backup
+
+
+backend api-site
+
+    ##### OPTIONS
+    mode http
+    balance roundrobin
+
+    ##### SERVERS
+    server web01 10.0.75.30:443 check port 443 ssl verify none force-tlsv12 weight 100
+    server web02 10.0.75.31:443 check port 443 ssl verify none force-tlsv12 backup
+{% if groups['WHL'][0] is defined %}
+
+
+backend failwhale-site
+
+    ##### OPTIONS
+    mode http
+    balance leastconn
+
+    ##### SERVERS
+    server  10.0.75.75:80 check port 80 weight 256
+{% endif %}

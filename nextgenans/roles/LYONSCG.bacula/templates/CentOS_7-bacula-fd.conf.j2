@@ -1,0 +1,37 @@
+#########################################################################################
+### This file is managed by Ansible and local changes may be overwritten at any time! ###
+#########################################################################################
+
+# List Directors who are permitted to contact this File daemon
+#
+Director {
+  Name = LCG-PRD-BAC-01-dir
+  Password = "{{ bacula_client_password.stdout }}"
+}
+
+#
+# Restricted Director, used by tray-monitor to get the
+#   status of the file daemon
+#
+Director {
+  Name = bacula-mon
+  Password = "{{ bacula_client_password.stdout }}"
+  Monitor = yes
+}
+
+#
+# "Global" File daemon configuration specifications
+#
+FileDaemon {                          # this is me
+  Name = {{ ansible_hostname }}
+  FDport = 9102                  # where we listen for the director
+  WorkingDirectory = /var/spool/bacula
+  Pid Directory = /var/run
+  Maximum Concurrent Jobs = 20
+}
+
+# Send all messages except skipped files back to Director
+Messages {
+  Name = Standard
+  director = LCG-PRD-BAC-01-dir = all, !skipped, !restored
+}

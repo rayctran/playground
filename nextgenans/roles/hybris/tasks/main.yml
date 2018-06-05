@@ -1,0 +1,44 @@
+---
+# tasks/main.yml
+
+- name: create hybris group
+  group:
+    name: hybris
+    gid: 1005
+    state: present
+  tags: hybris
+
+- name: create hybris user
+  user:
+    name: hybris
+    uid: 1005
+    shell: /bin/bash
+    group: hybris
+  tags: hybris
+
+- name: "Copy start up script to /etc/init.d"
+  copy:
+    src: hybris
+    dest: /etc/init.d
+    owner: root
+    group: root
+    mode: 0755
+    force: yes
+  tags:
+    - hybris
+
+- name: "Granting hybris the ability to run the start up script and restart the hybris' releated services"
+  copy:
+    src: 99-LyonsCG_Hybris_Service_Account
+    dest: /etc/sudoers.d/99-LyonsCG_Hybris_Service_Account
+    owner: root
+    group: root
+    mode: 0440
+    force: yes
+  tags:
+    - hybris
+
+- name: 'Enabling hybris service on boot'
+  command: systemctl enable hybris
+  become: true
+

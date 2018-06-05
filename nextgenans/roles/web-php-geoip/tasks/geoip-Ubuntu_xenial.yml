@@ -1,0 +1,41 @@
+---
+# web-php/tasks/php-Ubuntu_xenial-PHP-FPM.yml
+- name: "Installing GeoIP Related packages -- tags: geoip"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - php-geoip
+    - geoipupdate
+    - geoip-database
+  tags:
+    - geoip
+
+- name: "Copy GeoIP.conf file -- tags: geoip"
+  copy:
+    src: GeoIP.conf
+    dest: /etc/GeoIP.conf
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - geoip
+
+- name: "Running GeoIP Update -- tags: geoip"
+  command: /usr/bin/geoipupdate
+  tags:
+    - geoip
+
+- name: "Set weekly cron job for GeoIP updates -- tags: geoip"
+  cron:
+    name: Weekly GeoIP database update
+    job: /usr/bin/geoipupdate >/dev/null 2>&1
+    user: root
+    special_time: weekly
+    state: present
+  tags:
+    - geoip

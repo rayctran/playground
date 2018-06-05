@@ -1,0 +1,25 @@
+---
+# multi-java/tasks/main.yml
+
+- name: "Adding Oracle PPA"
+  apt_repository:
+    repo: ppa:webupd8team/java
+
+- name: "Accepting Oracle license"
+  debconf:
+    name: 'oracle-java8-installer'
+    question: 'shared/accepted-oracle-license-v1-1'
+    value: 'true'
+    vtype: 'select'
+
+- name: "Installing Java packages"
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    cache_valid_time: 43200
+    state: present
+  with_items:
+    - oracle-java8-installer
+    - oracle-java8-set-default
+
+

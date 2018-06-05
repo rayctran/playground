@@ -1,0 +1,36 @@
+---
+# multi-lsync-incron/handlers/main.yml
+- name: reload sysctl
+  command: sysctl --system
+
+- name: restart lsyncd
+  service:
+    name: lsyncd
+    state: restarted
+
+- name: start lsyncd
+  service:
+    name: lsyncd
+    state: started
+    enabled: yes
+
+- name: restart incron
+  service:
+    name: incron
+    state: restarted
+
+- name: start incron
+  service:
+    name: incron
+    state: started
+    enabled: yes
+
+- name: restart xinetd
+  service:
+    name: xinetd
+    state: restarted
+
+- name: start xinetd
+  service:
+    name: xinetd
+    state: started

@@ -1,0 +1,65 @@
+# db-mysql/tasks/main.yml
+- set_fact:
+    host_count: "{{ groups['WEB'] | length }}"
+
+- name: Creating MySQL Database
+  mysql_db:
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    name: "{{ mysql_db_name }}"
+    state: present
+  tags:
+    - mysql-db-config
+
+- name: Creating MySQL user for Dev
+  mysql_user:
+    name: "{{ mysql_user }}"
+    host: localhost
+    password: "{{ mysql_dbuser_password }}"
+    priv: '{{ client_code }}%.*:ALL'
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    state: present
+#  when: env_type | match("DEV") and host_count | match("0")
+  when: env_type | match("DEV")
+  tags:
+    - mysql-db-config
+
+- name: Creating MySQL user for Dev and Stage
+  mysql_user:
+    name: "{{ mysql_user }}"
+    host: "{{ my_current_vlan }}.5%"
+    password: "{{ mysql_dbuser_password }}"
+    priv: '{{ client_code }}%.*:ALL'
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    state: present
+#  when: env_type | match("STG") and host_count | match("[1-9]")
+  when: env_type | match("STG")
+  tags:
+    - mysql-db-config
+
+- name: Creating MySQL user for Prod
+  mysql_user:
+    name: "{{ mysql_user }}"
+    host: "{{ item }}"
+    password: "{{ mysql_dbuser_password }}"
+    priv: '{{ client_code }}%.*:ALL'
+#    login_user: root
+#    login_password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    login_port: 3306
+    state: present
+  with_items:
+    - "{{ my_current_vlan }}.4%"
+    - "{{ my_current_vlan }}.5%"
+    - "{{ my_current_vlan }}.6%"
+  when: env_type | match("PRD")
+  tags:
+    - mysql-db-config

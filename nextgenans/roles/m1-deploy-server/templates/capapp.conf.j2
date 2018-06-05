@@ -1,0 +1,44 @@
+Listen *:8443
+<VirtualHost *:8443>
+        ServerName "{{ client_code }}-M1-deploy.lcgosc.com"
+        ServerAlias "{{ ansible_hostname }}.lcgosc.com" "www.{{ client_code }}-M1-deploy.lcgosc.com"
+        DocumentRoot /var/www/capapp
+        SSLEngine on
+        SSLProtocol all -TLSv1 -SSLv3
+        SSLCipherSuite ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA
+        SSLHonorCipherOrder On
+        SSLCertificateFile /etc/ssl/certs/wc.lcgosc.com.crt
+        SSLCertificateKeyFile /etc/ssl/private/wc.lcgosc.com.key
+        SSLCertificateChainFile /etc/ssl/certs/wc.lcgosc.com.chain.crt
+        SSLProxyEngine On
+
+    <Directory "/var/www/capapp">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Order allow,deny
+
+        ### Do not change ###
+        AuthType Basic
+        AuthName "This is a restricted system. Please enter valid credentials."
+        AuthBasicProvider file
+        AuthUserFile /var/www/passwords
+
+        ##### WHITELIST #####
+        ### Add IPs below ###
+        #Allow from 127.0.0.1
+
+        # Cisco VPN
+        Allow from 10.200
+
+        # Rockford Office
+        Allow from 96.92.241.241
+
+        # Chicago Office
+        Allow from 162.17.59.217
+
+        Require valid-user
+        Order allow,deny
+
+        Satisfy Any
+     </Directory>
+</VirtualHost>

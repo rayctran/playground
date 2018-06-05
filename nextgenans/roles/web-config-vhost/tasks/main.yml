@@ -1,0 +1,14 @@
+---
+# multi-apache/tasks/main.yml
+
+- name: "Checking PHP processor option -- tags: php-fpm"
+  fail: msg="Required php_processor option is invalid {{ php_processor }}. Please enter mod_php or PHP-FPM"
+  when: not (php_processor | match("PHP-FPM|mod_php"))
+#  when: php_processor != "PHP-FPM" or php_processor != "mod_php"
+  tags:
+    - web-config-vhost
+
+- name: "Including Ubuntu Apache tasks"
+  include: "multi-apache-{{ ansible_distribution }}.yml"
+  tags:
+    - web-config-vhost

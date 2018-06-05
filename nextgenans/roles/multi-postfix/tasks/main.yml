@@ -1,0 +1,49 @@
+---
+# web-postfix/tasks/main.yml
+- name: "Installing Postfix -- tags: postfix"
+  apt:
+    update_cache: yes
+    name: postfix
+    state: present
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - postfix
+
+- name: "Installing Postfix -- tags: postfix"
+  yum:
+    update_cache: yes
+    state: present
+    name: postfix
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - postfix
+
+- name: "Adding smtp_generic_maps -- tags: postfix"
+  lineinfile:
+    dest: /etc/postfix/main.cf
+    line: "smtp_generic_maps = hash:/etc/postfix/generic"
+    insertafter: EOF
+    state: present
+  tags:
+    - postfix
+
+- name: "Set domain to client's name -- tags: postfix"
+  set_fact:
+    domain: "{{ client | lower }}.com"
+  tags:
+    - postfix
+
+
+- name: "Setting up postfix generic template -- tags: postfix"
+  template:
+    src: generic.j2
+    dest: /etc/postfix/generic
+  tags:
+    - postfix
+
+- name: "Running postmap -- tags: postfix"
+  command: postmap /etc/postfix/generic
+  notify:
+    - restart postfix
+  tags:
+    - postfix

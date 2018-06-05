@@ -1,0 +1,75 @@
+[mysqld]
+
+# GENERAL #
+default_storage_engine         = {{ mysql_default_storage_engine  }}
+
+# MyISAM #
+key_buffer_size                = {{ mysql_key_buffer_size  }}
+myisam_recover                 = {{ mysql_myisam_recover  }}
+myisam_sort_buffer_size	       = {{ mysql_myisam_sort_buffer_size  }}
+
+# SAFETY #
+max_allowed_packet             = {{ mysql_max_allowed_packet  }}
+max_connect_errors             = {{ mysql_max_connect_errors  }}
+skip_name_resolve
+
+# BINARY LOGGING #
+log_bin                        = {{ mysql_log_bin  }}
+sync_binlog                    = {{ mysql_sync_binlog  }}
+binlog_format                  = {{ mysql_binlog_format  }}
+expire_logs_days = {{ mysql_expire_logs_days  }}
+
+# CACHES AND LIMITS #
+tmp_table_size                 = {{ mysql_tmp_table_size  }}
+max_heap_table_size            = {{ mysql_max_heap_table_size }}
+query_cache_type               = {{ mysql_query_cache_type  }}
+query_cache_size               = {{ mysql_query_cache_size  }}
+query_cache_limit	           = {{ mysql_query_cache_limit  }}
+max_connections                = {{ mysql_max_connections  }}
+thread_cache_size              = {{ mysql_thread_cache_size  }}
+open_files_limit               = {{ mysql_open_files_limit  }}
+table_definition_cache         = {{ mysql_table_definition_cache  }}
+table_open_cache               = {{ mysql_table_open_cache  }}
+
+# INNODB #
+innodb_flush_method            = {{ mysql_innodb_flush_method  }}
+innodb_log_files_in_group      = {{ mysql_innodb_log_files_in_group  }}
+innodb_log_file_size           = {{ mysql_innodb_log_file_size  }}
+innodb_flush_log_at_trx_commit = {{ mysql_innodb_flush_log_at_trx_commit  }}
+innodb_file_per_table          = {{ mysql_innodb_flush_log_at_trx_commit  }}
+innodb_buffer_pool_size        = {{ mysql_innodb_buffer_pool_size  }}
+innodb_log_buffer_size         = {{ mysql_innodb_log_buffer_size  }}
+innodb_additional_mem_pool_size = {{ mysql_innodb_additional_mem_pool_size  }}
+innodb_thread_concurrency	    = {{ mysql_innodb_thread_concurrency  }}
+#innodb_io_capacity		        = {{ mysql_innodb_io_capacity  }}
+innodb_buffer_pool_instances 	= {{ mysql_innodb_buffer_pool_instances  }}
+innodb_doublewrite 		        = {{ mysql_innodb_doublewrite  }}
+
+
+# LOGGING #
+log_error                      = {{ mysql_log_error  }}
+log_queries_not_using_indexes  = {{ mysql_log_queries_not_using_indexes  }}
+slow_query_log                 = {{ mysql_slow_query_log  }}
+slow_query_log_file            = {{ mysql_slow_query_log_file  }}
+long_query_time = {{ mysql_long_query_time  }}
+
+# BUFFERS #
+read_buffer_size               = {{ mysql_read_buffer_size  }}
+read_rnd_buffer_size           = {{ mysql_read_rnd_buffer_size  }}
+sort_buffer_size               = {{ mysql_sort_buffer_size  }}
+join_buffer_size               = {{ mysql_join_buffer_size  }}
+bulk_insert_buffer_size	       = {{ mysql_bulk_insert_buffer_size  }}
+
+#LCG OPTIONS
+innodb_data_file_path = {{ mysql_innodb_data_file_path  }}
+server-id = {{ server_id  }}
+auto_increment_increment = {{ mysql_auto_increment_increment  }}
+auto_increment_offset = {{ server_id  }}
+interactive_timeout = {{ mysql_interactive_timeout  }}
+wait_timeout = {{ mysql_wait_timeout  }}
+ignore-db-dir  = {{ mysql_ignore_db_dir }}
+
+# LGC REPLICATION OPTIONS
+# read_only # required for read only slave
+#log-slave-updates  #required on master-master with read slave(s)
+#skip-slave  #used for testing, not for production

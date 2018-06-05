@@ -1,0 +1,133 @@
+#!/usr/bin/env ansible-playbook
+---
+# file: zabbix.yml
+# Playbook for settting up Zabbix 
+
+# All servers get a client. This should cover any
+# groups that is not listed here. If a group 
+# requires specific config then add them here
+
+- hosts: 127.0.0.1
+  vars_files:
+    - vars.yml
+  gather_facts: no
+  roles:
+    - db-passwd-manager
+
+- hosts: all
+  become: yes
+  gather_facts: no
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  role:
+    - ssh-management
+
+- hosts: MON
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - mon-zabbix_hostgroup
+    - db-mysql-install
+    - mon-zabbix_proxy
+    - multi-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: DB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - db-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: WEB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - web-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: ADM
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - adm-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: LB
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - lb-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: RED
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - red-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: VAR
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - var-zabbix_agent
+    - mon-zabbix_host
+
+- hosts: ELA
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  remote_user: osc
+  roles:
+    - multi-zabbix_agent
+    - mon-zabbix_host
+
+#- hosts: all
+#  vars_files:
+#    - vars.yml
+#  gather_facts: yes
+#  become: yes
+#  become_user: root
+#  remote_user: osc
+#  roles:
+#    - multi-zabbix_agent
+#    - mon-zabbix_host

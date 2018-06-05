@@ -1,0 +1,397 @@
+#
+# This is an example VCL file for Varnish.
+#
+# It does not do anything by default, delegating control to the
+# builtin VCL. The builtin VCL is called when there is no explicit
+# return statement.
+#
+# See the VCL chapters in the Users Guide at https://www.varnish-cache.org/docs/
+# and http://varnish-cache.org/trac/wiki/VCLExamples for more examples.
+
+# Marker to tell the VCL compiler that this VCL has been adapted to the
+# new 4.0 format.
+vcl 4.0;
+
+import std;
+import directors;
+#import cookie;
+
+
+#####################################################
+# Backend server configuration.
+#
+# Multiple backends may be defined, just add a new
+# backend block with a unique name.  Also be sure to
+# add the new backend to the director in vcl_init.
+#####################################################
+{% for host in groups['WEB'] %}
+{% set backendname = hostvars[host]['ansible_hostname'] |replace("-", "_") %}
+backend {{ backendname }}  {
+    .host = "{{ host }}";
+    .port = "{{ varnish_port }}";
+    .first_byte_timeout = {{ varnish_first_byte_timeout }};
+    .connect_timeout = {{ varnish_connect_timeout }};
+    .between_bytes_timeout = {{ varnish_between_bytes_timeout }};
+}
+{% endfor %}
+
+#####################################################
+# ACL configuration
+#####################################################
+acl trusted {
+    "127.0.0.1";
+{% for host in groups['ADM'] %}
+    "{{ host }}";
+{% endfor %}
+    # Add other ips that are allowed to purge cache.
+}
+
+
+#####################################################
+# vcl_init
+#
+# Happens very early during initialization of VCL
+#
+# Typically used for initializing VMODs.  This will
+# also be responsible for setting up the director.
+#####################################################
+sub vcl_init {
+    # Setup Director, add backends as necessary
+    new balance = directors.round_robin();
+{% for host in groups['WEB'] %}
+{% set backendname = hostvars[host]['ansible_hostname']|replace("-", "_") %}
+    balance.add_backend({{ backendname }});
+{% endfor %}
+    return(ok);
+}
+
+
+#####################################################
+# vcl_recv
+#
+# Happens before we check if we have this in cache
+# already.
+#
+# Typically you clean up the request here, removing
+# cookies you don't need, rewriting the request, etc.
+#####################################################
+sub vcl_recv {
+    # Set traffic to go through the director
+    set req.backend_hint = balance.backend();
+
+
+    # Set X-Forwarded-For based on client's IP or
+    # on a previously set X-Forwarded-For.  This allows
+    # Varnish to be a bit more transparent.
+    if (req.restarts == 0) {
+        if (req.http.x-forwarded-for) {
+            set req.http.X-Forwarded-For = req.http.X-Forwarded-For;
+        }
+        else {
+            set req.http.X-Forwarded-For = client.ip;
+        }
+    }
+
+
+    # Force pass through on all requests.  Only for debugging.
+    # return(pass);
+
+
+    # Disable PURGE requests
+    if (req.method == "PURGE") {
+        return(synth(405, "Not allowed."));
+    }
+
+
+    # Ban Support (Method for invalidating cached pages)
+    if (req.method == "BAN") {
+        if (!client.ip ~ trusted) {
+           return(synth(405, "Not allowed."));
+        }
+
+        ban("obj.http.x-host ~ " + req.http.x-ban-host
+                + " && obj.http.x-url ~ " + req.http.x-ban-url
+        );
+
+        return(synth(200, "Ban Added"));
+    }
+
+
+    # No support for SPDY or HTTP/2.0 Requests
+    if (req.method == "PRI") {
+        return(synth(405, "Upsupported"));
+    }
+
+
+    # Pipe HTTP verbs that are not handled
+    if (req.method != "GET" &&
+       req.method != "HEAD" &&
+       req.method != "PUT" &&
+       req.method != "POST" &&
+       req.method != "TRACE" &&
+       req.method != "OPTIONS" &&
+       req.method != "DELETE") {
+         return (pipe);
+    }
+
+
+    # Cache only GET or HEAD requests
+    if (req.method != "GET" && req.method != "HEAD") {
+        set req.http.X-Miss = "1";
+        return (pass);
+    }
+
+
+    # Do no cache authorization requests
+    if (req.http.Authorization) {
+        set req.http.X-Miss = "2";
+        return (pass);
+    }
+
+
+    # Normalize Accept-Encoding
+    if (req.http.Accept-Encoding) {
+        if (req.http.Accept-Encoding ~ "gzip") {
+            set req.http.Accept-Encoding = "gzip";
+        } elsif (req.http.Accept-Encoding ~ "deflate") {
+            set req.http.Accept-Encoding = "deflate";
+        } else {
+            # unkown algorithm
+            unset req.http.Accept-Encoding;
+        }
+    }
+
+
+    # Rules for static files
+    if (req.url ~ "\.(jpeg|jpg|png|gif|ico|swf|js|css|gz|rar|txt|bzip|pdf)(\?.*|)$") {
+        set req.http.X-Static-Cacheable = "1";
+        unset req.http.Cookie;
+
+        return (hash);
+    }
+
+
+    # Passthrough Requests
+    # Don't cache admin
+    if (req.url ~ "^/(index.php/)?admin") {
+        set req.http.X-Miss = "3";
+        return(pass);
+    }
+
+    # Don't cache checkout/customer pages, product compare, wishlist.
+    if (req.url ~ "/(checkout|customer|catalog\/product_compare|wishlist)") {
+        set req.http.X-Miss = "4";
+        return(pass);
+    }
+
+    # Do not cache if 'nocache' cookie exists
+    if (req.http.cookie ~ "nocache") {
+        set req.http.X-Miss = "5";
+        return(pass);
+    }
+
+    # Do not cache if 'nocache=1' parameter exists
+    if (req.url ~ "&|\?nocache=1") {
+        set req.http.X-Miss = "6";
+        return(pass);
+    }
+
+    # Do not cache if COMPARE cookies are set.
+    if (req.http.cookie ~ "(COMPARE)") {
+        set req.http.X-Miss = "7";
+        return(pass);
+    }
+
+    # LEMA bypasses
+    if (req.url ~ "/lyonscg_ajax") {
+        set req.http.X-Miss = "8";
+        return(pass);
+    }
+
+    # XDEBUG bypass
+    if (req.url ~ "&|\?XDEBUG_SESSION_START") {
+        set req.http.X-Miss = "9";
+        return(pass);
+    }
+    if (req.http.cookie ~ "(XDEBUG_SESSION)") {
+        set req.http.X-Miss = "10";
+        return(pass);
+    }
+
+    # Magento Customer Groups
+    # Create a new header "X-CustomerInfo" to store value of cookie for later use
+    #cookie.parse(req.http.Cookie);
+    #set req.http.X-CustomerInfo = cookie.get("CUSTOMER_INFO");
+    if (req.http.cookie ~ "CUSTOMER_INFO=") {
+        set req.http.X-CustomerInfo = regsub(req.http.cookie, ".*CUSTOMER_INFO=([^;]+).*", "\1");
+    }
+
+    # Magento Enterprise Customer Segments
+    # Create a new header "X-CustomerSegment" to store value of cookie
+    #set req.http.X-CustomerSegment = cookie.get("CUSTOMER_SEGMENT_IDS");
+    if (req.http.cookie ~ "CUSTOMER_SEGMENT_IDS=") {
+        set req.http.X-CustomerSegment = regsub(req.http.cookie, ".*CUSTOMER_SEGMENT_IDS=([^;]+).*", "\1");
+    }
+
+    # Instruct varnish to remove cache headers received from backend
+    set req.http.X-Cacheable = "1";
+
+
+    return(hash);
+}
+
+
+#####################################################
+# vcl_hash
+#
+# Happens whenever a request hash needs to be
+# generated.
+#
+# Used to generate the hashed key that is used to
+# lookup and save the content.
+#
+# The below code is from Varnish's builtin VCL.  Only
+# modify if necessary
+#####################################################
+sub vcl_hash {
+
+    hash_data(req.url);
+    
+    if (req.http.host) {
+        hash_data(req.http.host);
+    } else {
+        hash_data(server.ip);
+    }
+
+    # include customer group in hash
+    hash_data(req.http.X-CustomerInfo);
+
+    # include customer segment in hash
+    hash_data(req.http.X-CustomerSegment);
+
+    return (lookup);
+}
+
+
+#####################################################
+# vcl_backend_response
+#
+# Happens after we have read the response headers
+# from the backend.
+#
+# Here you clean the response headers, removing silly
+# Set-Cookie headers and other mistakes your backend
+# does.
+#####################################################
+sub vcl_backend_response {
+    # Allow stale content to be delivered for 30 seconds after TTL
+    set beresp.grace = 30s;
+
+
+    # Set ban-lurker friendly custom headers
+    set beresp.http.x-url = bereq.url;
+    set beresp.http.x-host = bereq.http.host;
+
+
+    # Current response should not be cached
+    if(beresp.http.Set-Cookie ~ "nocache=1") {
+        set beresp.uncacheable = true;
+        set beresp.ttl = 120s;
+        return (deliver);
+    }
+
+
+    # Remove User-Agent from Vary header.
+    if (beresp.http.Vary ~ "User-Agent") {
+        set beresp.http.Vary = regsub(beresp.http.Vary, ",? *User-Agent *", "");
+        set beresp.http.Vary = regsub(beresp.http.Vary, "^, *", "");
+        if (beresp.http.Vary == "") {
+            unset beresp.http.Vary;
+        }
+    }
+
+
+    # Prepare dynamic content for cache
+    if (bereq.http.X-Cacheable) {
+        # Clean up response headers
+        unset beresp.http.Magic-Marker;
+        unset beresp.http.Cache-Control;
+        unset beresp.http.Expires;
+        unset beresp.http.Pragma;
+        unset beresp.http.Cache;
+        unset beresp.http.Server;
+        unset beresp.http.Set-Cookie;
+        unset beresp.http.Age;
+
+        # 1 day TTL for dynamic content
+        set beresp.ttl = 1d;
+    }
+
+
+    # Prepare static content for cache
+    if (bereq.http.X-Static-Cacheable) {
+        # Clean up response headers
+        unset beresp.http.X-Static-Cacheable;
+        unset beresp.http.ETag;
+
+        # 30 day TTL for static content
+        set beresp.ttl = 30d;
+    }
+
+
+    # If backend sends 500, mark backend as unusable for
+    # 20 seconds and restart the request.
+    if (beresp.status == 500) {
+        if (bereq.method != "POST") {
+           return(retry);
+        }
+    }
+
+
+    return (deliver);
+}
+
+
+#####################################################
+# vcl_backend_response
+#
+# Happens after we have read the response headers
+# from the backend.
+#
+# Here you clean the response headers, removing silly
+# Set-Cookie headers and other mistakes your backend
+# does.
+#####################################################
+sub vcl_backend_error {
+    # Retry is backend fails
+    return(retry);
+}
+
+
+#####################################################
+# vcl_deliver
+#
+# Happens when we have all the pieces we need, and are about to send the
+# response to the client.
+#
+# You can do accounting or modifying the final object here.
+#####################################################
+sub vcl_deliver {
+    # Use the following for debugging HIT/MISS
+    if (obj.hits > 0) {
+        set resp.http.X-Cache = "HIT (" + obj.hits + ")";
+    } else {
+        if (req.http.X-Miss) {
+            set resp.http.X-Cache = "MISS (" + req.http.X-Miss + ")";
+        } else {
+            set resp.http.X-Cache = "MISS";
+        }
+    }
+
+    # Clean up response headers
+    unset resp.http.x-url;
+    unset resp.http.x-host;
+
+
+    return (deliver);
+}

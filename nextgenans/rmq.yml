@@ -1,0 +1,16 @@
+#!/usr/bin/env ansible-playbook
+---
+# rmq.yml
+- hosts: RMQ
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  roles:
+    - LYONSCG.rmq
+#    - rmq-zabbix_agent
+#    - rmq-graylog_collector
+#    - rmq-ufw

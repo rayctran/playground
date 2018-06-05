@@ -1,0 +1,10 @@
+---
+# web-php-geoip/tasks/main.yml
+
+- name: "Install geoip on Ubuntu {{ ansible_distribution }}"
+  include: geoip-{{ ansible_distribution }}_{{ ansible_distribution_release }}.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- name: "Install geoip on CentOS 6"
+  include: geoip-{{ ansible_distribution }}_{{ ansible_distribution_major_version }}.yml
+  when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '6'

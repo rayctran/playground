@@ -1,0 +1,127 @@
+---
+# all-bootstrap/tasks/bootstrap-common.yml
+- name: "Add hostname to /etc/hosts in localhost line for IPv4 -- tags: bootstrap, hosts"
+  lineinfile:
+    dest: /etc/hosts
+    backrefs: yes
+    regexp: "^(127.0.0.1\\s)(?=.*localhost)(.*)$"
+    line: "\\1{{ ansible_hostname }} {{ ansible_fqdn }} localhost localhost.localdomain"
+    state: present
+  tags:
+    - bootstrap
+    - hosts
+
+- name: "Add hostname to /etc/hosts in localhost line for IPv6 -- tags: bootstrap, hosts"
+  lineinfile:
+    dest: /etc/hosts
+    backrefs: yes
+    regexp: "^(::1\\s)(?=.*localhost)(.*)$"
+    line: "\\1{{ ansible_hostname }} {{ ansible_fqdn }} localhost ip6-localhost ip6-loopback"
+    state: present
+  tags:
+    - bootstrap
+    - hosts
+
+- name: "Getting VLAN information  -- tags: bootstrap, network"
+  command: bash -c "ip a | grep -o -e "10.*.*.*/24" | awk -F '.' '{print $3}'"
+  register: vlan
+  changed_when: false
+  failed_when: "vlan.stdout == ''"
+  tags:
+    - bootstrap
+    - network
+
+- name: "Changing swapiness -- tags: bootstrap, swappiness"
+  sysctl:
+    name: vm.swappiness
+    value: 10
+    state: present
+    reload: yes
+  tags:
+    - bootstrap
+    - swapiness
+
+- name: "Setting sudoers defaults -- tags: bootstrap, sudoers"
+  template:
+    src: 01-defaults
+    dest: /etc/sudoers.d/01-defaults
+    owner: root
+    group: root
+    mode: 0440
+    backup: yes
+    force: yes
+  tags:
+    - bootstrap
+    - sudoers
+
+- name: "Copying OOM Killer exclusion script -- tags: bootstrap, oomkiller"
+  copy:
+    src: oom-disable.sh
+    dest: /usr/local/bin/oom-disable.sh
+    owner: root
+    group: root
+    mode: 0755
+    force: yes
+  tags:
+    - bootstrap
+    - oomkiller
+
+- name: "Adding cron entry for OOM Killer exclusion script -- tags: bootstrap, oomkiller"
+  cron:
+    name: OOM Killer exclusion script
+    cron_file: oom-disable
+    job: /usr/local/bin/oom-disable.sh >/dev/null 2>&1
+    user: root
+    minute: "*/1"
+    hour: "*"
+    day: "*"
+    weekday: "*"
+    month: "*"
+    state: present
+  tags:
+    - bootstrap
+    - oomkiller
+
+# 12/18/2017 - Added become no because of the git bug related to passphrase of the root's key
+- name: "Clone sysadmin scripts repo -- tags: bootstrap, cleanhomedirs"
+  git:
+    repo: git@bitbucket.org:lyonsconsultinggroup/sysadmin-scripts.git
+    dest: ./files/sysadmin-scripts
+    force: yes
+  delegate_to: localhost
+  run_once: yes
+  become: no
+  tags:
+    - bootstrap
+    - cleanhomedirs
+
+- name: "Copy home directory cleaning script -- tags: bootstrap, cleanhomedirs"
+  copy:
+    src: sysadmin-scripts/clean_home_dirs/mrclean.sh
+    dest: /usr/local/bin/mrclean.sh
+    owner: root
+    group: root
+    mode: 0755
+  tags:
+    - bootstrap
+    - cleanhomedirs
+
+- name: "Set up cron to run home directory cleaning script -- tags: bootstrap, cleanhomedirs"
+  cron:
+    backup: yes
+    job: /usr/local/bin/mrclean.sh
+    name: Home directory cleaning job
+    special_time: daily
+    state: present
+    user: root
+  tags:
+    - bootstrap
+    - cleanhomedirs
+
+- name: "Add Cisco VPN to active routes -- tags: bootstrap, network"
+# Replace with the net_static_route module once we're on Ansible 2.4
+  shell: "ip route add 10.200.0.0/16 via 10.0.{{ vlan.stdout }}.254"
+  ignore_errors: yes
+  tags:
+    - bootstrap
+    - network

@@ -1,0 +1,20 @@
+settings {
+    logfile = "/var/log/lsyncd.log",
+        statusFile = "/var/log/lsyncd.status",
+    statusInterval = 1,
+}
+ 
+ 
+sync{
+        default.rsync,
+        source="/etc/haproxy",
+        target="{{ lsync_client }}::haproxy",
+        excludeFrom="/etc/lsyncd/lsync.exclude",
+        rsync = {
+                archive = true,
+                compress = true,
+                hard_links = true,
+                links = true,
+                _extra = { "-O" }
+        }
+}

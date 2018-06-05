@@ -1,0 +1,9 @@
+#########################################################################################
+### This file is managed by Ansible and local changes may be overwritten at any time! ###
+#########################################################################################
+
+Job {
+  Name = "{{ ansible_hostname }}-stripped-db-{{ app_type }}"
+  JobDefs = "{{ bacula_backup_schedule }}-stripped-db-{{ app_type }}"
+  Client = "{{ ansible_hostname }}"
+}

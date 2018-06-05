@@ -1,0 +1,6 @@
+---
+# all-packages/handlers/main.yml
+- name: restart sysstat
+  service:
+    name: sysstat
+    state: restarted

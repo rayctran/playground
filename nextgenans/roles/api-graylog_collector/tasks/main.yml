@@ -1,0 +1,12 @@
+---
+# api-graylog_collector/tasks/main.yml
+- name: "Copy graylog rsyslog config file to proper place."
+  copy:
+    src: 60-graylog.conf
+    dest: /etc/rsyslog.d/60-graylog.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify:
+    - restart rsyslogd

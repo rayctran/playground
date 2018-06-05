@@ -1,0 +1,490 @@
+---
+# tasks file for LYONSCG.bacula
+# LYONSCG.bacula/roles/main.yml
+- name: "Install the Bacula File Daemon for Ubuntu -- tags: backup"
+  apt:
+    name: bacula-fd
+    state: present
+  async: 300
+  poll: 15
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - backup
+
+- name: "Install the Bacula File Daemon for CentOS -- tags: backup"
+  yum:
+    name: bacula-client
+    state: present
+  async: 300
+  poll: 15
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - backup
+
+- name: "Add Bacula Director to the hosts file -- tags: backup"
+  lineinfile:
+    backup: yes
+    dest: /etc/hosts
+    state: present
+    line: "10.0.1.25     LCG-PRD-BAC-01 LCG-PRD-BAC-01.sys.lcgosc.com LCG-PRD-BAC-01.lcgosc.com"
+    insertafter: EOF
+  tags:
+    - backup
+
+- name: "Generate and save Bacula client password -- tags: backup"
+  shell: "openssl rand -hex 7 > /etc/bacula/passwords/{{ client_code }}.bpasswd"
+  args:
+    creates: /etc/bacula/passwords/{{ client_code }}.bpasswd
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+
+- name: "Import existing Bacula client password -- tags: backup"
+  command: cat /etc/bacula/passwords/{{ client_code }}.bpasswd
+  changed_when: False
+  register: bacula_client_password
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+
+- name: "Copy Bacula client configuration for Ubuntu -- tags: backup"
+  template:
+    src: "{{ ansible_distribution }}-bacula-fd.conf.j2"
+    dest: /etc/bacula/bacula-fd.conf
+    owner: bacula
+    group: bacula
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - backup
+  notify:
+    - restart bacula-fd
+
+- name: "Copy Bacula client configuration for CentOS -- tags: backup"
+  template:
+    src: "{{ ansible_distribution }}_{{ ansible_distribution_major_version }}-bacula-fd.conf.j2"
+    dest: /etc/bacula/bacula-fd.conf
+    owner: bacula
+    group: bacula
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - backup
+  notify:
+    - restart bacula-fd
+
+- name: "Modify running iptables for CentOS -- tags: backup"
+  iptables:
+    action: insert
+    chain: INPUT
+    ctstate: NEW
+    protocol: tcp
+    destination_port: 9102
+    jump: ACCEPT
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - backup
+
+- name: "Modify saved iptables for CentOS -- tags: backup"
+  lineinfile:
+    dest: /etc/sysconfig/iptables
+    backup: yes
+    state: present
+    insertbefore: '^-A INPUT -j REJECT --reject-with icmp-host-prohibited'
+    line: '-A INPUT -m state --state NEW -m tcp -p tcp --dport 9102 -j ACCEPT'
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - backup
+
+# Replace the adhoc command below with the openssl module when we're on Ansible 2.4
+- name: "Generate client encryption key -- tags: backup"
+  command: openssl genrsa -out /etc/bacula/keys/{{ client_code }}-bacula.key 2048
+  args:
+    creates: /etc/bacula/keys/{{ client_code }}-bacula.pem
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+
+# Replace the adhoc command below with the openssl module when we're on Ansible 2.4
+- name: "Generate client certificate -- tags: backup"
+  command: openssl req -new -key /etc/bacula/keys/{{ client_code }}-bacula.key -x509 -out /etc/bacula/keys/{{ client_code }}-bacula.cert -subj "/C=US/ST=Illinois/L=Rockford/O=Lyons Consulting Group/OU=Application Hosting/CN={{ client_code }}"
+  args:
+    creates: /etc/bacula/keys/{{ client_code }}-bacula.pem
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+  
+- name: "Combine client cert and key -- tags: backup"
+  shell: "cat /etc/bacula/keys/{{ client_code }}-bacula.key /etc/bacula/keys/{{ client_code }}-bacula.cert > /etc/bacula/keys/{{ client_code }}-bacula.pem"
+  args:
+    creates: /etc/bacula/keys/{{ client_code }}-bacula.pem
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+  
+- name: "Remove key and cert files -- tags: backup"
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/bacula/keys/{{ client_code }}-bacula.key
+    - /etc/bacula/keys/{{ client_code }}-bacula.cert
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+  
+- name: "Restrict permissions on combined file -- tags: backup"
+  file:
+    path: /etc/bacula/keys/{{ client_code }}-bacula.pem
+    state: file
+    owner: bacula
+    group: bacula
+    mode: 0600
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+  
+- name: "Pull client cert down locally -- tags: backup"
+  fetch:
+    src: /etc/bacula/keys/{{ client_code }}-bacula.pem
+    dest: files/
+    flat: yes
+  run_once: true
+  delegate_to: 10.0.1.25
+  tags:
+    - backup
+  notify:
+    - restart bacula-fd
+
+- name: "Push client cert to host -- tags: backup"
+  copy:
+    src: "{{ client_code }}-bacula.pem"
+    dest: /etc/bacula/{{ client_code }}-bacula.pem
+    owner: bacula
+    group: bacula
+    mode: 0644
+  tags:
+    - backup
+  notify:
+    - restart bacula-fd
+
+- name: "Copy Bacula master cert into place -- tags: backup"
+  copy:
+    src: bacula-master.cert
+    dest: /etc/bacula/bacula-master.cert
+    owner: bacula
+    group: bacula
+    mode: 0644
+  tags:
+    - backup
+  notify:
+    - restart bacula-fd
+
+- name: "Create Bacula restore directory -- tags: backup"
+  file:
+    dest: /bacula
+    owner: bacula
+    group: bacula
+    mode: 0770
+    state: directory
+  tags:
+    - backup
+  notify:
+    - restart bacula-fd
+
+- name: "MySQL-specific client tasks -- tags: backup"
+  include: bacula-{{ ansible_distribution }}-mysql.yml
+  when: ansible_distribution == 'Ubuntu' and mysql_backup_target == 'yes'
+  tags:
+    - backup
+
+- name: "Create client file on Bacula Director -- tags: backup"
+  template:
+    src: client.conf.j2
+    dest: /etc/bacula/bacula-dir.d/client/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+  tags:
+    - backup
+
+- name: "Create admin panel server job file on Bacula Director -- tags: backup"
+  template:
+    src: www_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'ADM' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Apache web server job file on Bacula Director -- tags: backup"
+  template:
+    src: www_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'WEB' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create API server job file on Bacula Director -- tags: backup"
+  template:
+    src: www_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'API' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create ElasticSearch job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'ELA' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create generic database job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'DB' in group_names"
+    - mysql_backup_target != 'yes'
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create HAProxy load balancer job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'LB' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Hybris job file on Bacula Director -- tags: backup"
+  template:
+    src: hyb_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'HYB' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Jenkins job file on Bacula Director -- tags: backup"
+  template:
+    src: ci_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'CI' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Memcache job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'MEM' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create MySQL job file on Bacula Director -- tags: backup"
+  template:
+    src: mysql-db_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - mysql_backup_target == 'yes'
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create RabbitMQ job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'RMQ' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Redis job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'RED' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Solr job file on Bacula Director -- tags: backup"
+  template:
+    src: solr_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'SLR' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create stripped DB dump job file on Bacula Director -- tags: backup"
+  template:
+    src: stripped-db_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}-stripped-db-{{ app_type }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - schedule restore
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - stripped_db_dump_target == 'yes'
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Varnish job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'VAR' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'
+
+- name: "Create Zabbix proxy job file on Bacula Director -- tags: backup"
+  template:
+    src: base_job.conf.j2
+    dest: /etc/bacula/bacula-dir.d/job/{{ ansible_hostname }}.conf
+    owner: bacula
+    group: bacula
+  delegate_to: 10.0.1.25
+  notify:
+    - reload bacula-director
+    - test comms
+    - listing results
+  tags:
+    - backup
+  when:
+    - "'MON' in group_names"
+    - env_type == 'DMZ' or env_type == 'PRD'

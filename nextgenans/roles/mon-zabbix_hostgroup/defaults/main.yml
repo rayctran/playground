@@ -1,0 +1,4 @@
+---
+# mon-zabbix_hostgroup/defauls/main.yml
+zabbix_username: zabbix_api
+zabbix_password: wV4q9pP552R76wbKA647KJG6

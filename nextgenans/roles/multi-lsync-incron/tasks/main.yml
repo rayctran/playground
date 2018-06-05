@@ -1,0 +1,265 @@
+---
+# multi-lsync-setup/tasks/main.yml
+# No go if lsync not set
+- debug:
+    msg: "Lsyncd configuration variable is not set or non-production environment. Skipping.. -- tags: lsync, lsync-master"
+  when: lsync is undefined or not (env_type | match ('PRD|DMZ'))
+  tags:
+    - lsync
+    - lsync-master
+
+- meta: end_play
+  when: lsync is undefined or not (env_type | match ('PRD|DMZ'))
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Check if lsyncd is already installed -- tags: lsync, lsync-master"
+  shell: dpkg -s lsyncd | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  when: 
+    - lsync | match("master")
+  tags:
+    - lsync
+    - lsync-master
+
+- debug:
+    msg: " Lsyncd is already installed. Skipping Lsyncd installation... -- tags: lsync, lsync-master"
+  when: 
+    - lsync | match("master")
+    - is_installed.rc == 0 
+  tags:
+    - lsync
+    - lsync-master
+
+- meta: end_play
+  when: 
+    - lsync | match("master")
+    - is_installed.rc == 0 
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Installing Lsyncd -- tags: lsync, lsync-master"
+  apt:
+    name: lsyncd
+    state: present
+    cache_valid_time: 43200
+  when: 
+    - lsync | match("master")
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Seting sysctl.d config option. -- tags: lsync, lsync-master"
+  copy:
+    src: 60-lsyncd.conf
+    dest: /etc/sysctl.d/60-lsyncd.conf
+    owner: root
+    group: root
+  when: 
+    - lsync | match("master")
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Creating Lsyncd directory -- tags: lsync, lsync-master"
+  file:
+    path: /etc/lsyncd
+    owner: root
+    group: root
+    state: directory
+    mode: 0755
+  when: lsync | match("master")
+  tags:
+    - lsync
+    
+- name: "Copy Configuration File For the LB Master -- tags: lsync, lsync-master"
+  template:
+    src: lsyncd.conf.lua.lb.master.j2
+    dest: /etc/lsyncd/lsyncd.conf.lua
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  when: inventory_hostname in groups['LB'] and lsync | match("master")
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Copy Configuration File For the Web Master -- tags: lsync, lsync-master"
+  template:
+    src: lsyncd.conf.lua.web.master.j2
+    dest: /etc/lsyncd/lsyncd.conf.lua
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  when: inventory_hostname in groups['WEB'] and lsync | match("master")
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Copying exclude file -- tags: lsync, lsync-master"
+  copy:
+    src: lsync.exclude
+    dest: /etc/lsyncd/lsync.exclude
+    owner: root
+    group: root
+    mode: 0644
+  when: 
+    - lsync | match("master")
+  notify: 
+    - start lsyncd
+  tags:
+    - lsync
+    - lsync-master
+
+- name: "Setting up logrotate for Lsync  -- tags: lsync, lsync-master"
+  copy:
+    src: lsyncd.logrotate
+    dest: /etc/logrotate.d/lsyncd
+    owner: root
+    group: root
+    mode: 0644
+  when: 
+    - lsync | match("master")
+  notify: 
+    - start lsyncd
+  tags:
+    - lsync
+    - lsync-master
+
+# Lsync Client 
+- name: "Install Lsync Client xinetd -- tags: lsync, lsync-client"
+  apt: 
+    name: xinetd 
+    state: present 
+    update_cache: yes
+  when: 
+    - lsync | match("client")
+  tags:
+    - lsync
+    - lsync-client
+
+- name: "Setting up xinetd.d -- tags: lsync, lsync-client"
+  copy:
+    src: rsync.xinetd
+    dest: /etc/xinetd.d/rsync
+    owner: root
+    group: root
+    mode: 0644
+  when: 
+    - lsync | match("client")
+  tags:
+    - lsync
+    - lsync-client
+
+- name: "Copy rsync Configuration File For the LB client -- tags: lsync, lsync-client"
+  template:
+    src: rsyncd.conf.lb.j2
+    dest: /etc/rsyncd.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  when: 
+    - inventory_hostname in groups['LB']
+    - lsync | match("client")
+  tags:
+    - lsync
+    - lsync-client
+
+- name: "Copy rsync Configuration File For the Web client -- tags: lsync, lsync-client"
+  template:
+    src: rsyncd.conf.web.j2
+    dest: /etc/rsyncd.conf
+    owner: root
+    group: root
+    mode: 0644
+    force: yes
+  when: 
+    - inventory_hostname in groups['WEB']
+    - lsync | match("client")
+  tags:
+    - lsync
+    - lsync-client
+
+- name: "Update default rsync file -- tags: lsync, lsync-client"
+  replace:
+    dest: /etc/default/rsync
+    regexp: 'RSYNC_ENABLE=false'
+    replace: 'RSYNC_ENABLE=inetd'
+  notify: 
+    - start xinetd
+  when: 
+    - lsync | match("client")
+  tags:
+    - lsync
+    - lsync-client
+
+# Incron section will run only on LB group and the lsync client
+- debug:
+    msg: " incron is not required. Skipping incron installation... -- tags: incron, lsync-client"
+  when: inventory_hostname not in groups['LB'] or lsync | match ("master")
+  tags:
+    - incron
+    - lsync-client
+
+- meta: end_play
+  when: inventory_hostname not in groups['LB'] or lsync | match ("master")
+  tags:
+    - incron
+    - lsync-client
+
+- name: "Check if incron is already installed -- tags: incron, lsync-client"
+  shell: dpkg -s incron | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  tags:
+    - incron
+    - lsync-client
+
+- debug:
+    msg: " incron is already installed. Skipping incron installation... -- tags: incron, lsync-client"
+  when: is_installed.rc == 0
+  tags:
+    - incron
+    - lsync-client
+
+- meta: end_play
+  when: is_installed.rc == 0
+  tags:
+    - incron
+    - lsync-client
+
+- name: "Installing incron -- tags: incron, lsync-client"
+  apt:
+    name: incron
+    state: present
+    cache_valid_time: 43200
+  tags:
+    - incron
+    - lsync-client
+
+- name: "Copying haproxy configuration file to the secondary haproxy server -- tags: incron, lsync-client"
+  copy:
+    src: haproxy.conf
+    dest: /etc/incron.d/haproxy.conf
+    owner: root
+    group: root
+  tags:
+    - incron
+    - lsync-client
+
+- name: "start incron -- tags: incron, lsync-client"
+  service:
+    name: incron
+    state: started
+    enabled: yes
+  tags:
+    - incron
+    - lsync-client

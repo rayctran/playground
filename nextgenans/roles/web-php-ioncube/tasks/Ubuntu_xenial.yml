@@ -1,0 +1,77 @@
+---
+# web-php-ioncube/tasks/main.yml
+- name: "Copying ionCube php configuration {{ php_processor }} for {{ ansible_distribution }} {{ ansible_distribution_release }}-- tags: ioncube"
+  copy:
+    src: /tmp/ioncube/ioncube_loader_lin_7.0.so
+    dest: /usr/lib/php/20151012/ioncube_loader_lin_7.0.so
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: yes
+  when: 
+    - php_processor == 'mod_php'
+  tags:
+    - ioncube
+
+- name: "Setting ioncube.ini file -- tags: ioncube"
+  copy:
+    src: "{{ ansible_distribution }}_{{ ansible_distribution_release }}_ioncube.ini"
+    dest: /etc/php/7.0/mods-available/ioncube.ini
+    owner: root
+    group: root
+    mode: 0644
+  when: 
+    - php_processor == 'mod_php'
+  tags:
+    - ioncube
+
+- name: "Creating links for the ini files in apache2"
+  file:
+    src: ../../mods-available/ioncube.ini
+    dest: /etc/php/7.0/apache2/conf.d/01-ioncube.ini
+    state: link
+  when: 
+    - php_processor == 'mod_php'
+  tags:
+    - ioncube
+
+- name: "Creating links for the ini files in cli"
+  file:
+    src: ../../mods-available/ioncube.ini
+    dest: /etc/php/7.0/cli/conf.d/01-ioncube.ini
+    state: link
+  when: 
+    - php_processor == 'mod_php'
+  notify:
+    - restart apache
+  tags:
+    - ioncube
+
+#- name: "Enabling PHP icncube module -- tags: ioncube"
+#  command: phpenmod ioncube
+#  notify:
+#    - restart apache
+#  tags:
+#    - ioncube
+#
+#- name: "Checking status of /etc/php5/apache2/conf.d/20-ioncube.ini -- tags: ioncube"
+#  stat:
+#    path: /etc/php/7.0/apache2/conf.d/20-ioncube.ini
+#  register: a2ini
+#
+#- name: "Checking status of /etc/php5/cli/conf.d/20-ioncube.ini -- tags: ioncube"
+#  stat:
+#    path: /etc/php/7.0/cli/conf.d/20-ioncube.ini
+#  register: cliini
+#
+#- name: "Making sure ioncube loads first -- tags: ioncube"
+#  command: "mv /etc/php/7.0/apache2/conf.d/20-ioncube.ini /etc/php/7.0/apache2/conf.d/01-ioncube.ini"
+#  when: a2ini.stat.islnk is defined
+#  tags:
+#    - ioncube
+#
+#- name: "Making sure ioncube loads first -- tags: ioncube"
+#  command: "mv /etc/php/7.0/cli/conf.d/20-ioncube.ini /etc/php/7.0/cli/conf.d/01-ioncube.ini"
+#  when: cliini.stat.islnk is defined
+#  tags:
+#    - ioncube

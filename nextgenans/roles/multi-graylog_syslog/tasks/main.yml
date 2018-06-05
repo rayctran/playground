@@ -1,0 +1,15 @@
+---
+# multi-graylog_syslog/tasks/main.yml
+
+- name: "Adding Graylog Syslog Configuration File"
+  copy:
+    src: "{{ env_type }}_15-graylog.conf"
+    dest: /etc/rsyslog.d/15-graylog.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  notify:
+    - restart rsyslogd
+  when: env_type == 'PRD' or env_type == 'STG' or env_type == 'DMZ'
+  tags: graylog-syslog

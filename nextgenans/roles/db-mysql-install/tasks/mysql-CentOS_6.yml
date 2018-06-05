@@ -1,0 +1,124 @@
+---
+# db-mysql-install/tasks/main.yml
+- name: "Check if MySQL is already installed"
+  shell: dpkg -s mysql-server-5.6 | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  when: ansible_distribution_release == 'trusty'
+
+- name: "Check if MySQL is already installed"
+  shell: dpkg -s mysql-server | grep 'install ok installed'
+  register: is_installed
+  failed_when: is_installed.rc > 1
+  changed_when: no
+  when: ansible_distribution_release == 'xenial'
+
+- name: "Set MySQL root password before installing"
+  include: mysql56.yml
+  when: (ansible_distribution_release == 'trusty') and
+        (is_installed.rc != 0)
+
+- name: "Set MySQL root password before installing"
+  include: mysql57.yml
+  when: (ansible_distribution_release == 'xenial') and
+        (is_installed.rc != 0)
+
+- name: "Set MySQL root password again before installing"
+  include: mysql56again.yml
+  when: (ansible_distribution_release == 'trusty') and
+        (is_installed.rc != 0)
+
+- name: "Set MySQL root password again before installing"
+  include: mysql57again.yml
+  when: (ansible_distribution_release == 'xenial') and
+        (is_installed.rc != 0)
+
+- name: "Installing MySQL packages."
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - mysql-client-5.6
+    - mysql-server-5.6
+    - mysqltuner
+    - percona-xtrabackup
+    - python-mysqldb
+  notify:
+    - stop mysql
+    - remove datadir files
+#    - create datadir
+    - install db
+  when: ansible_distribution_release == 'trusty'
+
+- name: "Installing MySQL packages."
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - mysql-client
+    - mysql-server
+    - mysqltuner
+    - percona-xtrabackup
+    - python-mysqldb
+  notify:
+    - stop mysql
+    - remove datadir files
+    - create datadir
+    - install db 5.7
+    - delete anonymous
+    - remove test database
+    - secure root user
+  when: ansible_distribution_release == 'xenial'
+
+- name: "Copying basic config file."
+  copy:
+    src: my56.cnf
+    dest: /etc/mysql/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - start mysql
+  when: ansible_distribution_release == 'trusty'
+
+- name: "Copying basic config file."
+  copy:
+    src: my57.cnf
+    dest: /etc/mysql/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - start mysql
+  when: ansible_distribution_release == 'xenial'
+
+- name: "Copying basic version of the Lyons custom config file."
+  copy:
+    src: lyonscg56.cnf
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - start mysql
+  when: ansible_distribution_release == 'trusty'
+
+- name: "Copying basic version of the Lyons custom config file."
+  copy:
+    src: lyonscg57.cnf
+    dest: /etc/mysql/conf.d/lyonscg.cnf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - start mysql
+  when: ansible_distribution_release == 'xenial'

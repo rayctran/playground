@@ -1,0 +1,10 @@
+---
+# mon-zabbix_proxy/defaults/main.yml
+
+mysql_root_password: 'Rfvbgt345'
+mysql_user: root
+mysql_old_root_password: ''
+mysql_root_password_init: ''
+mysql_replication_user_password: Rfvbgt345
+mysql_port: 3306
+

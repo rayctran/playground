@@ -1,0 +1,4 @@
+---
+# db-mysql/handlers/main.yml
+- name: Restart Mysql
+  service: name=mysql state=restarted

@@ -1,0 +1,22 @@
+---
+# all-packages/tasks/packages-CentOS.yml
+- name: "Installing the standard set of packages for CentOS -- tags: packages"
+  yum:
+    update_cache: yes
+    state: present
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - bind-utils
+    - python-devel
+    - python-pip
+    - sysvinit-tools
+    - fail2ban
+    - htop
+    - rkhunter
+    - screen
+    - sysstat
+    - tmux
+  tags:
+    - packages

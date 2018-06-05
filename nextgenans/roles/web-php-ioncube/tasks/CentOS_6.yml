@@ -1,0 +1,40 @@
+---
+# web-php-ioncube/tasks/main.yml
+- name: "Fetching and unpacking ionCube tarball -- tags: php, ioncube"
+  unarchive:
+    src: http://downloads2.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
+    dest: /usr/lib64/php/modules/
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: yes
+    creates: /usr/lib64/php/modules/ioncube_loader_lin_5.3.so
+  tags:
+    - ioncube
+
+- name: "Copying ionCube php configuration {{ php_processor }} for {{ ansible_distribution }} {{ ansible_distribution_release }}-- tags: ioncube"
+  copy:
+    src: /tmp/ioncube/ioncube_loader_lin_5.3.so
+    dest: /usr/lib64/php/modules/ioncube_loader_lin_5.3.so
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: yes
+  when: 
+    - ansible_distribution == 'CentOS' 
+    - ansible_distribution_major_version == '6'
+    - php_processor == 'mod_php'
+  tags:
+    - ioncube
+
+- name: "Setting ioncube.ini file -- tags: ioncube"
+  copy:
+    src: "{{ ansible_distribution }}_{{ ansible_distribution_major_version }}_ioncube.ini"
+    dest: /etc/php.d/ioncube.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - ioncube

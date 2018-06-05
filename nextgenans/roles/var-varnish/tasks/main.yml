@@ -1,0 +1,59 @@
+---
+# var-varnish/tasks/main.yml
+- name: "Ensuring Varnish repo key is installed on Ubuntu 14.04 -- tags: varnish"
+  apt_key:
+    url: https://repo.varnish-cache.org/GPG-key.txt
+    state: present
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - varnish
+
+- name: "Adding current package source to list on Ubuntu 14.04 -- tags: varnish"
+  apt_repository:
+    repo: "deb https://repo.varnish-cache.org/ubuntu/ trusty varnish-4.1"
+    state: present
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - varnish
+
+- name: "Installing Varnish -- tags: varnish"
+  apt:
+    name: varnish
+    update_cache: yes
+    state: present
+  tags:
+    - varnish
+
+- name: "Run multi-memory-cal to get memory configuration -- tags: varnish"
+  include_role:
+    name: multi-memory-cal
+  vars:
+    memory_percentage_required: 0.75
+  tags:
+    - varnish
+
+- name: "Copy Default Varnish Configuration for Ubuntu 16.04 -- tags: varnish"
+  template: 
+    src: default_varnish.j2
+    dest: /etc/default/varnish
+    owner: root
+    group: root
+    force: yes
+    mode: 0644
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'xenial'
+  tags:
+    - varnish
+
+- name: "Copy System varnish.service Configuration for Ubuntu 16.04 -- tags: varnish"
+  template: 
+    src: system_varnish.service.j2
+    dest: /etc/systemd/system/varnish.service
+    owner: root
+    group: root
+    force: yes
+    mode: 0644
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'xenial'
+  notify:
+    - restart varnish
+  tags:
+    - varnish

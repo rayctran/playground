@@ -1,0 +1,28 @@
+---
+# web-php/tasks/php-CentOS_6-mod_php.yml
+- name: "Installing PHP -- tags: php"
+  yum:
+    update_cache: yes
+    state: installed
+    name: "{{ item }}"
+  with_items:
+    - php-pecl-geoip 
+    - mod_geoip
+    - geoipupdate-cron
+    - geoip
+  notify:
+    - restart httpd
+  tags:
+    - geoip
+
+- name: "Copying GeoIP configuration -- tags: php, geoip"
+  copy:
+    src: "{{ ansible_distribution }}-geoip.ini"
+    dest: /etc/php.d/geoip.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart httpd
+  tags:
+    - geoip

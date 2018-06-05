@@ -1,0 +1,10 @@
+#########################################################################################
+### This file is managed by Ansible and local changes may be overwritten at any time! ###
+#########################################################################################
+
+Client {
+  Name = {{ ansible_hostname }}
+  Address = {{ ansible_default_ipv4.address }}
+  Password = {{ bacula_client_password.stdout }}
+  Catalog = MyCatalog
+}

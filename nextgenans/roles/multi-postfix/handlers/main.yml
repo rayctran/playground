@@ -1,0 +1,11 @@
+---
+# web-postfix/handlers/main.yml
+- name: restart postfix
+  service:
+    name: postfix
+    state: restarted
+
+- name: start postfix
+  service:
+    name: postfix
+    state: start

@@ -1,0 +1,159 @@
+---
+# web-php/tasks/php-Ubuntu_xenial-PHP-FPM.yml
+- name: "Installing PHP -- tags: php-install"
+  apt:
+    update_cache: yes
+    cache_valid_time: 43200
+    state: installed
+    name: "{{ item }}"
+  async: 300
+  poll: 15
+  with_items:
+    - libapache2-mod-fastcgi
+    - php-fpm
+    - php
+    - php-cli
+    - php-mysql
+    - php-curl
+    - php-gd
+    - php-intl
+    - php-json
+    - php-mbstring
+    - php-mcrypt
+    - php-mysql
+    - php-pear
+    - php-soap
+    - php-xmlrpc
+    - php-zip
+    - php-bcmath
+    - php-imagick
+    - mysql-client
+  notify:
+    - restart apache
+  tags:
+    - php-install 
+
+
+# Bug work-around - re-enable apache2_module when the bug is fixed
+- name: "Enabling Apache PHP-FPM modules -- tags: php-install"
+#  apache2_module:
+#    name: "{{ item }}"
+#    state: present
+#    ignore_configcheck: yes
+#    with_items:
+#      - actions
+#      - fastcgi
+#      - mpm_prefork
+#      - proxy
+#      - proxy_fcgi
+#      - proxy_http
+#  notify:
+#    - restart apache
+  command: "/usr/sbin/a2enmod {{ item }}"
+  with_items:
+      - actions
+      - fastcgi
+      - mpm_prefork
+      - proxy
+      - proxy_fcgi
+      - proxy_http
+  notify:
+    - restart apache
+  tags:
+    - php-install 
+
+- name: "Enabling PHP mcrypt module -- tags: php-install"
+  command: phpenmod mcrypt
+  notify:
+    - restart php7-fpm
+  tags:
+    - php-install
+
+- name: "Copying FPM php.ini -- tags: php-install"
+  copy:
+    src: php.ini
+    dest: /etc/php/7.0/fpm/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart php7-fpm
+  tags:
+    - php-install 
+
+- name: "Copying CLI php.ini -- tags: php-install"
+  copy:
+    src: php.ini
+    dest: /etc/php/7.0/cli/php.ini
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - php-install 
+
+# 12/2017 - vhost configuration are done in the multi-web role
+#- name: "Copying vhost file -- tags: php-fpm"
+#  template:
+#    src: fpm7-vhost.conf.j2
+#    dest: /etc/apache2/sites-available/{{ client_code }}{{ env_type }}.lcgosc.com.conf
+#    owner: root
+#    group: root
+#    mode: 0644
+#  notify:
+#    - ubuntu enable site
+#    - restart apache
+#  tags:
+#    - php-fpm 
+
+- name: "Copying FPM Apache conf -- tags: php-install"
+  copy:
+    src: php7-fpm.conf
+    dest: /etc/apache2/conf-available/fpm.conf
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - php-install
+
+- name: "Enabling FPM conf -- tags: php-install"
+  command: "/usr/sbin/a2enconf {{ item }}"
+  with_items:
+    - fpm
+  tags:
+    - php-install
+
+- name: "Creating socket directory -- tags: php-install"
+  file:
+    path: /var/run/php
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  tags:
+    - php-install
+
+- name: "Removing existing FPM pool definition -- tags: php-install"
+  shell: rm -f /etc/php/7.0/fpm/pool.d/www.conf
+  tags:
+    - php-install 
+
+- name: "Copying FPM pool definition -- tags: php-install"
+  template:
+    src: fpm7-pool.conf.j2
+    dest: /etc/php/7.0/fpm/pool.d/{{ client_code }}{{ env_type }}.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - reload php7-fpm
+  tags:
+    - php-install 
+
+- name: "Making logfile directory and setting permissions -- tags: php-install"
+  file:
+    path: /var/log/fpm
+    owner: www-data
+    group: www-data
+    state: directory
+  tags:
+    - php-install 

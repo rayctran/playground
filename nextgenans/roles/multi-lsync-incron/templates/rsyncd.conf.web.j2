@@ -1,0 +1,23 @@
+[ssl]
+    path = /etc/ssl/
+    uid = root
+    gid = root
+    read only = no
+    list = yes
+    hosts allow = {{ lsync_master }}
+ 
+[sites-enabled]
+    path = /etc/apache2/sites-enabled/
+    uid = root
+    gid = root
+    read only = no
+    list = yes
+    hosts allow = {{ lsync_master }}
+ 
+[sites-available]
+    path = /etc/apache2/sites-available/
+    uid = root
+    gid = root
+    read only = no
+    list = yes
+    hosts allow = {{ lsync_master }}

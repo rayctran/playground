@@ -1,0 +1,23 @@
+---
+- name: Weekly restore of stripped DB dump
+  cron:
+    name: Scheduled restore of stripped DB dump for {{ client }}
+    job: "echo restore client={{ ansible_hostname }} restoreclient={{ stripped_db_restore_target }} fileset=stripped-db-{{ app_type }} strip_prefix=/etc select current all done yes | bconsole"
+    backup: yes
+    user: root
+    state: present
+    weekday: "{{ stripped_db_restore_day }}"
+    hour: "{{ stripped_db_restore_time }}"
+  when: stripped_db_restore_frequency == 'weekly'
+  delegate_to: 10.0.1.25
+
+- name: Daily restore of stripped DB dump
+  cron:
+    name: Scheduled restore of stripped DB dump for {{ client }}
+    job: "echo restore client={{ ansible_hostname }} restoreclient={{ stripped_db_restore_target }} fileset=stripped-db-{{ app_type }} strip_prefix=/etc select current all done yes | bconsole"
+    backup: yes
+    user: root
+    state: present
+    special_time: "{{ stripped_db_restore_frequency }}"
+  when: stripped_db_restore_frequency == 'daily'
+  delegate_to: 10.0.1.25

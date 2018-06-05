@@ -1,0 +1,14 @@
+#!/usr/bin/env ansible-playbook
+---
+# file: bacula.yml
+# Playbook for backing up servers
+- hosts: all
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_method: sudo
+  become_user: root
+  remote_user: osc
+  roles:
+    - LYONSCG.bacula

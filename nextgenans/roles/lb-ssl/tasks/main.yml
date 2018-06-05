@@ -1,0 +1,41 @@
+---
+# lb-ssl/tasks/main.yml
+- name: "Ensuring that the LCGOSC wildcard combined certificate in present."
+  copy:
+    src: /etc/ssl/private/wc.lcgosc.com.combined.crt
+    dest: /etc/ssl/private/
+
+- name: "Ensuring that the LCGOSC wildcard chain certificate in present."
+  copy:
+    src: /etc/ssl/certs/wc.lcgosc.com.chain.crt
+    dest: /etc/ssl/certs/
+
+- name: "Ensuring that the LCGOSC wildcard certificate in present."
+  copy:
+    src: /etc/ssl/certs/wc.lcgosc.com.crt
+    dest: /etc/ssl/certs/
+
+- name: "Ensuring that the LCGOSC wildcard key in present."
+  copy:
+    src: /etc/ssl/private/wc.lcgosc.com.key
+    dest: /etc/ssl/private/
+
+- name: "Ensuring that the LCGOSC www combined certificate in present."
+  copy:
+    src: /etc/ssl/private/www.lcgosc.com.combined.crt
+    dest: /etc/ssl/private/
+
+- name: "Ensuring that the LCGOSC www chain certificate in present."
+  copy:
+    src: /etc/ssl/certs/www.lcgosc.com.chain.crt
+    dest: /etc/ssl/certs/
+
+- name: "Ensuring that the LCGOSC www certificate in present."
+  copy:
+    src: /etc/ssl/certs/www.lcgosc.com.crt
+    dest: /etc/ssl/certs/
+
+- name: "Ensuring that the LCGOSC www key in present."
+  copy:
+    src: /etc/ssl/private/www.lcgosc.com.key
+    dest: /etc/ssl/private/

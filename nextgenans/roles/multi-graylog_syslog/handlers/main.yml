@@ -1,0 +1,7 @@
+---
+# multi-graylog_syslog/handlers/main.yml
+
+- name: restart rsyslogd
+  service:
+    name: rsyslog
+    state: restarted
