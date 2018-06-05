@@ -1,0 +1,29 @@
+---
+# file: vars.yml
+
+##### CLIENT AND ENVIRONMENT VARS
+# Client Name - Use full proper name. ex: The Cary Company
+# Required by role - basic-build
+# No default variable defined
+- client: Vermont Teddy Bear
+# Client Tenrox Code - Use the 3 character Tenrox prefix. ex: TCC
+# Required by role - basic-build, ci-jenkins, LYONSCG.bacula
+# No default variable defined
+- client_code: VTB
+# 20171026 - This variable is now part of the host item defined in the hosts.ini file. This is left for reference
+# Environment Type - ex: (DMZ) DMZ, (PRD) production, (STG) stage, (DEV) development, or (INT) internal.
+# Required by role - basic-build, LYONSCG.bacula
+# No default variable defined
+#- env_type: 
+# Application Type - ex: (M1) Magento 1, (M2) Magento 2, (HYB) Hybris, (SFCC) Salesforce Commerce Cloud, or (OTH) other.
+# Required by role - db-mysql-install, LYONSCG.rmq, LYONSCG.bacula
+# No default variable defined
+- app_type: M1
+
+# Networking set up. This is used for the initial client set up.
+# Required by role - clientinit
+- dmz_vlan: 155
+- stg_vlan: 156
+- prd_vlan: 157
+- stg_public_ip: 216.86.146.230
+- prd_public_ip: 216.86.146.229

@@ -1,0 +1,7 @@
+- hosts: localhost
+  vars_files:
+    - newclientvars.yml
+  gather_facts: no
+  become: no
+  roles:
+    - client-init

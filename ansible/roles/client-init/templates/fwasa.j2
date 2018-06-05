@@ -1,0 +1,91 @@
+Add {{ client_code }} DMZ VLAN {{ dmz_vlan }} , Stage VLAN {{ stg_vlan }}, and PROD VLAN {{ prd_vlan }} to the Firewall ASA.
+
+Add the following device interfaces
+Configuration -> Device Setup -> Interface Settings -> Interfaces
+||VLAN ID||Interface Name||IP||Netmask||
+|{{ dmz_vlan }}|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}|10.0.{{ dmz_vlan }}.2|255.255.255.0|
+|{{ stg_vlan }}|{{ client_code }}-STG-VLAN-{{ stg_vlan }}|10.0.{{ stg_vlan }}.2|255.255.255.0|
+|{{ prd_vlan }}|{{ client_code }}-PRD-VLAN-{{ prd_vlan }}|10.0.{{ prd_vlan }}.2|255.255.255.0|
+
+Add The following Firewall Objects
+Configuration -> Firewall -> Objects -> Network Objects/Groups
+*Network Objects*
+||Object Name||Type||IP Address||Netmasks||
+|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}-network|Network|10.0.{{ dmz_vlan }}.0|255.255.255.0|
+|{{ client_code }}-STG-VLAN-{{ stg_vlan }}-network|Network|10.0.{{ stg_vlan }}.0|255.255.255.0|
+|{{ client_code }}-PRD-VLAN-{{ prd_vlan }}-network|Network|10.0.{{ prd_vlan }}.0|255.255.255.0|
+|INT-NET-{{ client_code }}-DMZ|Network|10.0.{{ dmz_vlan }}.0|255.255.255.0|
+|INT-NET-{{ client_code }}-STG|Network|10.0.{{ stg_vlan }}.0|255.255.255.0|
+|INT-NET-{{ client_code }}-PRD|Network|10.0.{{ prd_vlan }}.0|255.255.255.0|
+
+*Host Objects*
+||Object Name||Type||IP Address||
+|INT-{{ client_code }}-DMZ-LB-VIP-01|Host|10.0.{{ dmz_vlan }}.10||
+|INT-{{ client_code }}-DMZ-LB-01|Host|10.0.{{ dmz_vlan }}.31|
+|INT-{{ client_code }}-DMZ-LB-02|Host|10.0.{{ dmz_vlan }}.{{ dmz_vlan }}|
+|INT-{{ client_code }}-DMZ-LB-03|Host|10.0.{{ dmz_vlan }}.{{ stg_vlan }}|
+|INT-{{ client_code }}-DMZ-VAR-01|Host|10.0.{{ dmz_vlan }}.121|
+|INT-{{ client_code }}-DMZ-VAR-02|Host|10.0.{{ dmz_vlan }}.122|
+|INT-{{ client_code }}-DEV-ALL-01|Host|10.0.{{ stg_vlan }}.211|
+|INT-{{ client_code }}-STG-CI-01|Host|10.0.{{ stg_vlan }}.205|
+|INT-{{ client_code }}-STG-WEB-01|Host|10.0.{{ stg_vlan }}.51|
+|INT-{{ client_code }}-STG-MON-01|Host|10.0.{{ stg_vlan }}.200|
+|INT-{{ client_code }}-PRD-WEB-01|Host|10.0.{{ prd_vlan }}.51|
+|INT-{{ client_code }}-PRD-WEB-02|Host|10.0.{{ prd_vlan }}.52|
+|INT-{{ client_code }}-PRD-SRG-01|Host|10.0.{{ prd_vlan }}.61|
+|INT-{{ client_code }}-PRD-SRG-02|Host|10.0.{{ prd_vlan }}.62|
+|INT-{{ client_code }}-PRD-ADM-01|Host|10.0.{{ prd_vlan }}.41|
+|INT-{{ client_code }}-PRD-MON-01|Host|10.0.{{ prd_vlan }}.200|
+|PUB-{{ client_code }}-PRD-{{ prd_public_ip }}|Host|{{ prd_public_ip }}|
+|PUB-{{ client_code }}-STG-{{ stg_public_ip }}|Host|{{ stg_public_ip }}|
+
+
+*Network Object Groups*
+INT-{{ client_code }}-DMZ-group (all DMZ hosts)
+INT-{{ client_code }}-PRD-WEB-group (all Production web servers)
+
+Add The following Firewall Access Rules
+Configuration -> Firewall -> Access Rules
+
+
+*Interface {{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}*
+||Source Object||Destination Object||Service||
+|INT-{{ client_code }}-DMZ-LB-03|INT-{{ client_code }}-DEV-ALL-01|tcp/http;tcp/https|
+|INT-{{ client_code }}-DMZ-LB-03|INT-{{ client_code }}-DEV-CI-01|tcp/http;tcp/https|
+|INT-{{ client_code }}-DMZ-LB-03|INT-{{ client_code }}-STG-WEB-01|tcp/http;tcp/https|
+|INT-{{ client_code }}-DMZ-group|INT-{{ client_code }}-WEB-group|tcp/http;tcp/https|
+|INT-NET-{{ client_code }}-DMZ|INT-{{ client_code }}-PRD-MON-01|Zabbix-trap|
+|INT-NET-{{ client_code }}-DMZ|INT-{{ client_code }}-STG-MON-01|Zabbix-trap|
+
+*Interface {{ client_code }}-STG-VLAN-{{ stg_vlan }}*
+||Source Object||Destination Object||Service||
+|INT-{{ client_code }}-STG-MON-01|INT-NET-{{ client_code }}-DMZ|icmp,Zabbix-agent, Zabbix-trap|
+|INT-{{ client_code }}-STG-WEB-01|INT-{{ client_code }}-DMZ-VAR-02|http|
+
+
+*Interface {{ client_code }}-PRD-VLAN-{{ prd_vlan }}*
+||Source Object||Destination Object||Service||
+|INT-{{ client_code }}-PRD-MON-01|INT-NET-{{ client_code }}-DMZ|icmp,Zabbix-agent, Zabbix-trap|
+|INT-{{ client_code }}-STG-WEB-group|INT-{{ client_code }}-DMZ-VAR-01|http|
+
+*External Access*
+Add the following Access Rule For External Access
+Configuration -> Firewall -> Access Rules
+*Interface public_net*
+||Source Object||Destination Object||Service||
+|public_net|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}|tcp/http;tcp/https|
+
+Add the following NAT Rules For External Access
+Configuration -> Firewall -> NAT Rules
+||Source Interface||Destination Interface||Source Address||Destination Address||Service||TP Source NAT Type||TP Source Address||TP Destination Address||TP Service||
+|public_net|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}|any|PUB-{{ client_code }}-STG-{{ stg_public_ip }}|https|Static|Original|INT-{{ client_code }}-DMZ-LB-03|Original|
+|public_net|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}|any|PUB-{{ client_code }}-STG-{{ stg_public_ip }}|http|Static|Original|INT-{{ client_code }}-DMZ-LB-03|Original|
+|{{ client_code }}-STG-VLAN-{{ dmz_vlan }}|public_net|INT-NET-{{ client_code }}-STG|any|any|Dynamic PAT (Hide)|PUB-{{ client_code }}-STG-{{ stg_public_ip }}|Original|Original|
+|public_net|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}|any|PUB-{{ client_code }}-PRD-{{ prd_public_ip }}|https|Static|Original|INT-{{ client_code }}-DMZ-LB-VIP-01|Original|
+|public_net|{{ client_code }}-DMZ-VLAN-{{ dmz_vlan }}|any|PUB-{{ client_code }}-PRD-{{ prd_public_ip }}|http|Static|Original|INT-{{ client_code }}-DMZ-LB-VIP-01|Original|
+|{{ client_code }}-PRD-VLAN-{{ prd_vlan }}|public_net|INT-NET-{{ client_code }}-PRD|any|any|Dynamic PAT (Hide)|PUB-{{ client_code }}-PRD-{{ prd_public_ip }}|Original|Original|
+
+Rules For M2 Standard Access
+||Source Object||Destination Object||Service||
+|INT-{{ client_code }}-STG-CI-01|INT-LCG-composer,INT-prodproxy|tcp/http;tcp/https|
+|INT-{{ client_code }}-DEV-ALL-01|INT-LCG-composer,INT-prodproxy|tcp/http;tcp/https|

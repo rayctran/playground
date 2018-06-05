@@ -1,0 +1,275 @@
+######## Hosts File
+# Enter the server ip under the type of server you need.
+# if you need everything on one server, then that ip
+# needs to be under every header.
+#
+# This file should be copied and renamed
+# <client_Tenrox_code>_hosts.ini
+########
+# Each host must have the variable below inline
+#
+# Hostname - This is used for reference so we can identify the hostname associated with the IP
+# hostname=
+# 
+# Environment Type - ex: (DMZ) DMZ, (PRD) production, (STG) stage, (DEV) development, or (INT) internal.
+# Required by role - basic-build, LYONSCG.bacula
+# No default variable defined
+# env_type=
+
+######## - LB	Load Balancer
+# Additional variables required
+# Lsync setup variable - ex: master, client
+# Required by role - 
+# lysnc=
+#
+# Keepalive setup variale: ex: master, backup
+# Required by role - 
+# keepalive=
+#
+# Example
+##########################
+# 10.0.17.31 env_type=PRD lsync=master keepalive=master hostname=LCG-DMZ-LB-01
+# 10.0.17.32 env_type=PRD lsync=client keepalive=backup hostname=LCG-DMZ-LB-02
+##########################
+[LB]
+10.0.{{ dmz_vlan }}.31 env_type=DMZ lsync=master keepalive=master hostname={{ client_code }}-DMZ-LB-01
+10.0.{{ dmz_vlan }}.32 env_type=DMZ lsync=client keepalive=backup hostname={{ client_code }}-DMZ-LB-02
+10.0.{{ dmz_vlan }}.33 env_type=DMZ lsync=client keepalive=backup hostname={{ client_code }}-DMZ-LB-03
+
+##########################
+# lsync_master= IP of Master
+# lsync_client= IP of Client
+# keepalive_master= 
+# keepalive_backup=
+# keepalive_vip= VIP IP
+##########################
+# Examples
+# lsync_master=10.0.17.31
+# lsync_client=10.0.17.32
+# keepalive_master=10.0.17.31
+# keepalive_backup=10.0.17.32
+# keepalive_vip=10.0.17.10
+[LB:vars]
+lsync_master=10.0.{{ dmz_vlan }}.31
+lsync_client=10.0.{{ dmz_vlan }}.32
+keepalive_master=10.0.{{ dmz_vlan }}.31
+keepalive_backup=10.0.{{ dmz_vlan }}.32
+keepalive_vip=10.0.{{ dmz_vlan }}.10
+
+######## - VAR	Varnish Server
+# Example
+####################
+# 10.0.17.121 env_type=PRD hostname=LCG-PRD-VAR-01 
+# 10.0.17.122 env_type=PRD hostname=LCG-PRD-VAR-02
+####################
+[VAR]
+10.0.{{ dmz_vlan }}.121 env_type=DMZ hostname={{ client_code }}-DMZ-VAR-01
+10.0.{{ dmz_vlan }}.121 env_type=DMZ hostname={{ client_code }}-DMZ-VAR-02
+
+######## - ADM	Apache Application Admin Server
+####################
+# 10.0.17.41 env_type=PRD hostname=LCG-PRD-ADM-01
+####################
+[ADM]
+
+######## - API  Apache API Server
+####################
+# 10.0.17.42 env_type=PRD hostname=LCG-PRD-API-01
+####################
+[API]
+
+######## - WEB	Apache Application Web Server
+# Additional variables required
+# Designate one (and only one) system as the stripped
+# DB dump target with variable stripped_db_dump_target=yes
+# Ideally, this should be a secondary or failover system
+# For example:
+# 1.2.3.51
+# 1.2.3.52 stripped_db_dump_target=yes
+#
+# Lsync setup variable - ex: master, client
+# Required by role - 
+# lysnc=
+# 
+# Example
+####################
+# 10.0.17.51 env_type=PRD lsync=master hostname=LCG-PRD-WEB-01
+# 10.0.17.52 env_type=PRD lsync=client hostname=LCG-PRD-WEB-02
+####################
+[WEB]
+10.0.{{ prd_vlan }}.51 env_type=PRD lsync=master hostname={{ client_code }}-PRD-WEB-01
+10.0.{{ prd_vlan }}.52 env_type=PRD lsync=client hostname={{ client_code }}-PRD-WEB-02
+
+[WEB:vars]
+####################
+# lsync_master= IP of Master
+# lsync_client= IP of Client
+####################
+lsync_master= 10.0.{{ prd_vlan }}.51
+lsync_client= 10.0.{{ prd_vlan }}.52
+####################
+
+
+######## - WHL	Failwhale Server
+####################
+# 10.0.17.61 env_type=PRD hostname=LCG-PRD-WHL-01
+# 10.0.17.62 env_type=PRD hostname=LCG-PRD-SRG-01
+####################
+[WHL]
+
+######## - Hybris Commerce Core and Data Hub
+####################
+# 10.0.17.151 env_type=PRD hostname=LCG-PRD-HYB-01
+####################
+[HYB]
+
+[HYB-BackOffice]
+
+
+[HYB-StoreFront]
+
+
+[HYB-DataHub]
+
+[HYB-CIS]
+
+# Use for all-in-one Hybris Dev boxes
+# 10.0.17.151 env_type=PRD hostname=XXX-DEV-ALL-01
+[HYB-DEV]
+
+######## - Hybris Commerce Core
+####################
+# 10.0.17.151 env_type=PRD hostname=LCG-PRD-HCC-01
+####################
+[HCC]
+
+######## - Hybris Data Hub
+####################
+# 10.0.17.161 env_type=PRD hostname=LCG-PRD-HDC-01
+####################
+[HDC]
+
+######## - DB	Database Server
+# Designate the secondary as the Bacula backup target
+# with variable mysql_backup_target=yes
+# For example:
+# 1.2.3.71
+# 1.2.3.72 mysql_backup_target=yes
+#
+# Keepalive setup variale: ex: master, backup
+# Required by role - 
+# keepalive=
+#
+# Replication setup variable: ex: primary, secondary, bi
+# mysql_repl_role=
+# Example
+####################
+# 10.0.17.71 env_type=PRD mysql_repl_role=primary keepalive=master hostname=LCG-PRD-DB-01
+# 10.0.17.72 env_type=PRD mysql_repl_role=secondary keepalive=backup mysql_backup_target=yes hostname=LCG-PRD-DB-02
+# 10.0.17.73 env_type=PRD mysql_repl_role=bi hostname=LCG-PRD-DB-03
+####################
+[DB]
+10.0.{{ prd_vlan }}.71 env_type=PRD mysql_repl_role=primary keepalive=master hostname={{ client_code }}-PRD-DB-01
+10.0.{{ prd_vlan }}.72 env_type=PRD mysql_repl_role=secondary keepalive=backup mysql_backup_target=yes hostname={{ client_code }}-PRD-DB-02
+
+# Group variables
+# mysql_repl_primary=       # Primary server
+# mysql_repl_secondary=     # Secondary server
+# mysql_repl_ro_slave=      # BI server
+# lsync_master=
+# lsync_client=
+# keepalive_master= 
+# keepalive_backup=
+# keepalive_vip= VIP IP
+# Examples:
+########################
+# mysql_repl_primary=10.0.17.71
+# mysql_repl_secondary=10.0.17.72
+# keepalive_master=10.0.17.71
+# keepalive_backup=10.0.17.72
+# keepalive_vip=10.0.17.10 
+# mysql_repl_ro_slave=10.0.17.73
+########################
+[DB:vars]
+mysql_repl_primary=10.0.{{ prd_vlan }}.71
+mysql_repl_secondary=10.0.{{ prd_vlan }}.72
+keepalive_master=10.0.{{ prd_vlan }}.71
+keepalive_backup=10.0.{{ prd_vlan }}.72
+keepalive_vip=10.0.{{ prd_vlan }}.10 
+
+ 
+######## - RED	Redis Server
+# Example
+####################
+# 10.0.17.101 env_type=PRD hostname=LCG-PRD-RED-01
+# 10.0.17.102 env_type=PRD hostname=LCG-PRD-RED-02
+# 10.0.17.103 env_type=PRD hostname=LRC-PRD-RED-02
+####################
+[RED]
+10.0.{{ prd_vlan }}.101 env_type=PRD hostname={{ client_code }}-PRD-RED-01
+10.0.{{ prd_vlan }}.102 env_type=PRD hostname={{ client_code }}-PRD-RED-02
+10.0.{{ prd_vlan }}.103 env_type=PRD hostname={{ client_code }}-PRD-RED-02
+
+######## - MEM  Memcache Server
+####################
+# 10.0.17.111 env_type=PRD hostname=LCG-PRD-MEM-01 
+####################
+[MEM]
+
+######## - DKR  Docker Server
+# Example
+####################
+# 10.0.17.171 env_type=PRD hostname=LCG-PRD-DKR-01 
+####################
+[DKR]
+
+
+######## - SLR	SOLR Server
+####################
+# 10.0.17.131 env_type=PRD hosname=LCG-PRD-SLR-01
+####################
+[SLR]
+10.0.{{ prd_vlan }}.131 env_type=PRD hosname={{ client_code }}-PRD-SLR-01
+
+######## - RMQ  RabbitMQ Server
+####################
+# 10.0.17.141 env_type=PRD hosname=LCG-PRD-RMQ-01
+####################
+[RMQ]
+
+######## - MON	Monitor Server
+####################
+# 10.0.17.200 env_type=PRD hosname=LCG-PRD-MON-01
+####################
+[MON]
+10.0.{{ prd_vlan }}.200 env_type=PRD hosname={{ client_code }}-PRD-MON-01
+
+######## - CI   Continous Integration (Jenkins) Server
+####################
+# 10.0.17.201 env_type=PRD hosname=LCG-PRD-CI-01
+####################
+[CI]
+
+######## - ELA   ElasticSearch Server
+####################
+# 10.0.17.211 env_type=PRD hosname=LCG-PRD-SLR-01
+####################
+[ELA]
+
+######## - LT   Load Testing jMeter Server
+# Designate the master server with a variable lt_type=master
+# Designate the slave servers with a variable lt_type=slave
+# Examples:
+# 10.0.17.211 hostname=ANS-PRD-LT-01 lt_type=master
+# 10.0.17.212 hostname=ANS-PRD-LT-02 lt_type=slave
+[LT]
+
+#
+[DPL]
+
+######## - M1DD - Magento 1 Deployment Dashboard server
+[M1DD]
+10.0.{{ prd_vlan }}.200 env_type=PRD hosname={{ client_code }}-PRD-MON-01
+
+[M1DD:vars]
+#deploy_repo="git@bitbucket.org:lyonsconsultinggroup/<REPO>.git"

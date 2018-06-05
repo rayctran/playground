@@ -1,0 +1,55 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+# getconfig.yml
+- hosts: localhost
+  gather_facts: yes
+  become: no
+  tasks:
+  - set_fact:
+      client_code: ARM
+      env_type: DMZ
+
+  - name: "checkout {{ client_code | lower }}config"
+    git:
+      repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}config.git"
+      version: master
+      dest: ~/ansible/clients/{{ client_code | lower }}config
+      force: yes
+
+- hosts: LB
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  tasks:
+  - set_fact:
+      client_code: LCGAH
+      env_type: DMZ
+
+  - name: "Get A List of files in the Haproxy Directory"
+    find:
+      path: "/etc/haproxy"
+      recurse: yes
+    register: haproxy_files
+
+  - name: "Get files to ~/ansible/clients/{{ client_code | lower }}config/{{ env_type }}"
+    fetch:
+      src: "{{ item.path }}"
+      dest: ~/ansible/clients/{{ client_code | lower }}config/{{ env_type }}
+      flat: no
+    with_items: "{{ haproxy_files.files }}"
+
+  - name: "Get A List of files in the keepalived Directory"
+    find:
+      path: "/etc/keepalived"
+      recurse: yes
+    register: ka_files
+
+  - name: "Get files to ~/ansible/clients/{{ client_code | lower }}config/{{ env_type }}"
+    fetch:
+      src: "{{ item.path }}"
+      dest: ~/ansible/clients/{{ client_code | lower }}config/{{ env_type }}
+      flat: no
+    with_items: "{{ ka_files.files }}"

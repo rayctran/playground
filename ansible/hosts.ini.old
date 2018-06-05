@@ -1,0 +1,51 @@
+[WEB]
+10.0.17.51
+10.0.17.52
+#10.0.17.53
+#10.0.36.54
+#10.0.36.55
+
+[ADM]
+10.0.36.141 hostname=LTD-PRD-ADM-01
+
+[M1DD]
+#10.0.90.159  web_servers="10.0.17.51","10.0.17.52" mytest="This is my message"
+#10.0.17.200
+10.0.37.202 hostname=LTD-PRD-CI-02 env_type=PRD
+
+[DB]
+#10.0.71.71 replica=primary env_type=PRD
+#10.0.71.73 replica=secondary env_type=PRD
+#10.0.74.72 env_type=STG
+10.0.25.73 env_type=PRD  replication_role=primary
+10.0.25.74 env_type=PRD  replication_role=secondary
+#10.0.74.72 env_type=STG  replication_role=secondary
+
+
+[DB:vars]
+repl_primary=10.0.25.73
+repl_secondary=10.0.25.74
+
+[RED]
+#10.0.25.105 hostname=STR-PRD-RED-05
+#10.0.25.106 hostname=STR-PRD-RED-06
+#10.0.25.107 hostname=STR-PRD-RED-07
+10.0.90.170 hostname=RCT-DEV-ALL-01
+
+[RED:vars]
+redmemconfig={'1007212': '716','2039404': '1434','2048264': '1434','3071596': '2150','4037724': '2867'}
+redmemconfigb={'1GB': {'memtotal': '1007212', 'maxmem': '716'}, '2GB': {'memtotal': '2039404', 'maxmem': '1434'}, '2GB-B': {'memtotal': '2048264', 'maxmem': '1434'}, '3GB': {'memtotal': '3071596', 'maxmem': '2150'}, '4GB': {'memtotal': '4037724', 'maxmem': '2867'}}
+# region_subnet_matrix={'site1': {'subnet': 'subnet-xxxxxxx', 'region': '{{ aws_region }}', 'zone': '{{aws_region}}a'}, 'site2': {'subnet': 'subnet-xxxxxxx', 'region': '{{ aws_region }}', 'zone': '{{aws_region}}b'}}
+
+
+[TEST]
+10.0.90.170
+
+[LB]
+10.0.72.31
+
+[Z]
+localhost
+
+[BLU]
+10.0.18.55

@@ -3,28 +3,24 @@
 # When prompted, enter new password
 
 - hosts: localhost
-  gather_facts: yes
-  become: yes
-  become_user: root
-  become_method: sudo
-  remote_user: osc
-
+  gather_facts: no
+  become: no
   tasks:
   - set_fact: 
-      client_code: ANS
-      env_type: PRD
+      client_code: LCGAH
+      env_type: DMZ
 
   - debug:
       msg: "{{ hostvars }}"
 
-  - debug:
-      msg: "I'm {{ ansible_user_id }}"
+#  - debug:
+#      msg: "I'm {{ ansible_user_id }}"
 
-  - name: "checkout {{ client_code | lower }}{{ env_type | lower }}config"
+  - name: "checkout {{ client_code | lower }}config"
     git:
-      repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ env_type | lower }}config.git"
+      repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}config.git"
       version: master
-      dest: ./files/{{ client_code | lower }}{{ env_type | lower }}config
+      dest: ~/ansible/clients/{{ client_code | lower }}config
       accept_hostkey: yes
     become: yes
     become_user: rtran

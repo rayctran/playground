@@ -1,0 +1,123 @@
+---
+# tasks/main.yml
+
+- name: "Set up php_proccessor for application {{ app_type }} -- tags: client-init"
+  set_fact:
+    php_processor: PHP-FPM
+  when: app_type | match("M2|HYB")
+  tags:
+    - client-ini
+
+- name: "Set up php_proccessor for application M1 -- tags: client-init"
+  set_fact:
+    php_processor: mod_php
+  when: app_type | match("M1")
+  tags:
+    - client-ini
+
+#- name: "Clone config repos -- tags: client-init"
+#  git:
+#    repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ item }}config.git"
+#    dest: ./files/{{ client_code | lower }}config
+#    accept_hostkey: yes
+#  run_once: yes
+#  become: no
+#  with_items:
+#    - prd
+#    - stg
+#    - dmz
+#  tags:
+#    - client-init
+#
+
+# This is in place of the bitbucket repos. Comment this out to switch to Bitbucket
+- name: "Creating LYONSCG custom Zabbix script directory"
+  file:
+    path: ./files/{{client_code | lower }}{{ item }}config
+    state: directory
+    mode: 0755
+  with_items:
+    - prd
+    - stg
+    - dmz
+  tags:
+    - client-ini
+
+- name: "Setting up DMZ hosts file -- tags: client-init"
+  template:
+    src: "dmz_hosts.ini.j2"
+    dest: "./files/{{ client_code | lower }}dmzconfig/hosts.ini"
+    mode: 0644
+  tags:
+    - client-init
+
+- name: "Setting up hosts file -- tags: client-init"
+  template:
+    src: "{{ app_type}}_{{ item }}_hosts.ini.j2"
+    dest: "./files/{{ client_code | lower }}{{ item }}config/hosts.ini"
+    mode: 0644
+  with_items:
+    - prd
+    - stg
+  tags:
+    - client-init
+
+- name: "Setting up DNS file -- tags: client-init"
+  template:
+    src: dns.j2
+    dest: "./files/{{ client_code | lower }}prdconfig/dns.txt"
+    mode: 0644
+  tags:
+    - client-init
+
+- name: "Setting up fwasa file -- tags: client-init"
+  template:
+    src: fwasa.j2
+    dest: "./files/{{ client_code | lower }}prdconfig/fwasa.txt"
+    mode: 0644
+  tags:
+    - client-init
+
+- name: "Copying vars.yml file -- tags: client-init"
+  template:
+    src: vars.yml.j2
+    dest: "./files/{{ client_code | lower }}{{ item }}config/vars.yml"
+    mode: 0644
+  with_items:
+    - prd
+    - stg
+    - dmz
+  tags:
+    - client-init
+
+#- name: "Committing changes back to the repo -- tags: client-init"
+#  command: bash -c 'cd ./files/{{ client_code | lower  }}{{ item }}config && git commit -m "Initial set up by Ansible" && git push'
+#  with_items:
+#    - prd
+#    - stg
+#    - dmz
+#  tags:
+#    - client-init
+
+#- name: Create a JIRA issue
+#  uri:
+#    url: https://lyonscg.atlassian.net/rest/api/2/issue/
+#    method: POST
+#    user: oscsvc
+#    password: {{ osvsvc_password }}
+#    body: "{{ lookup('file','issue.json') }}"
+#    force_basic_auth: yes
+#    status_code: 201
+#    body_format: json
+
+#- name: Create an assigned issue
+#  jira:
+#    uri: 'https://lyonscg.atlassian.net/rest/api/2/issue/'
+#    username: 'oscsvc'
+#    password: '{{ oscsvc_pass }}'
+#    project: "{{ client_code }}HS"
+#    operation: create
+#    summary: Assigned issue
+#    description: Created and assigned using Ansible
+#    issuetype: Task
+#    assignee: ssmith

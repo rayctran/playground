@@ -41,7 +41,7 @@
   - name: "Get files"
     fetch:
       src: "{{ item.path }}"
-      dest: ./files/
+      dest: ./files/LB
       flat: no
     with_items: "{{ haproxy_files.files }}"
 
@@ -54,6 +54,6 @@
   - name: "Get files"
     fetch:
       src: "{{ item.path }}"
-      dest: ./files/
+      dest: ./files/LB
       flat: no
     with_items: "{{ ka_files.files }}"

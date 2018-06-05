@@ -3,7 +3,7 @@
 # When prompted, enter new password
 
 #- hosts: DB:WEB
-- hosts: DB
+- hosts: all
   gather_facts: yes
 #  become: no
 #  become_user: root
@@ -52,16 +52,16 @@
 #  - debug:
 #      msg: "{{ hostvars[inventory_hostname].ansible_hostname.split('-')[3] }}"
 #
-  - set_fact:
-      last_digit_hostname_work: |
-        {{ hostvars[inventory_hostname].ansible_hostname.split('-')[3] | map('regex_replace','^0','') | list}}
-
-  - set_fact:
-      last_digit: "{{ last_digit_hostname_work[1] }}"
+#  - set_fact:
+#      last_digit_hostname_work: |
+#        {{ hostvars[inventory_hostname].ansible_hostname.split('-')[3] | map('regex_replace','^0','') | list}}
+#
+#  - set_fact:
+#      last_digit: "{{ last_digit_hostname_work[1] }}"
 #
 #
-  - debug:
-      msg: "{{ last_digit }}"
+#  - debug:
+#      msg: "{{ last_digit }}"
 #
 #  - set_fact:
 #      myhostname: "{{  hostvars[inventory_hostname].ansible_hostname }}"
@@ -70,7 +70,9 @@
 #      msg: "{{ myhostname }}"
 ##
   - debug:
-      msg: "my inventory_hostname is {{ inventory_hostname }}"
+      msg: "my inventory_hostname is {{ inventory_hostname }}. I belong to the group {{ group_names }}"
+#    when: inventory_hostname in groups['DB'] or inventory_hostname in groups['WEB'] or inventory_hostname in groups['localhost']
+    when: "'WEB' in group_names or 'DB' in group_names"
 
   - name: Setting server_id from the hostname
     shell: bash -c "echo {{  inventory_hostname }} | awk -F"-" '{print $4}' | sed s/^0//"

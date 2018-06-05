@@ -1,0 +1,276 @@
+######## Hosts File
+# Enter the server ip under the type of server you need.
+# if you need everything on one server, then that ip
+# needs to be under every header.
+#
+# This file should be copied and renamed
+# <client_Tenrox_code>_hosts.ini
+########
+# Each host must have the variable below inline
+#
+# Hostname - This is used for reference so we can identify the hostname associated with the IP
+# hostname=
+# 
+# Environment Type - ex: (DMZ) DMZ, (STG) production, (STG) stage, (DEV) development, or (INT) internal.
+# Required by role - basic-build, LYONSCG.bacula
+# No default variable defined
+# env_type=
+
+######## - LB	Load Balancer
+# Additional variables required
+# Lsync setup variable - ex: master, client
+# Required by role - 
+# lysnc=
+#
+# Keepalive setup variale: ex: master, backup
+# Required by role - 
+# keepalive=
+#
+# Example
+##########################
+# 10.0.17.31 env_type=STG lsync=master keepalive=master hostname=LCG-DMZ-LB-01
+# 10.0.17.32 env_type=STG lsync=client keepalive=backup hostname=LCG-DMZ-LB-02
+##########################
+[LB]
+
+##########################
+# lsync_master= IP of Master
+# lsync_client= IP of Client
+# keepalive_master= 
+# keepalive_backup=
+# keepalive_vip= VIP IP
+##########################
+# Examples
+# lsync_master=10.0.17.31
+# lsync_client=10.0.17.32
+# keepalive_master=10.0.17.31
+# keepalive_backup=10.0.17.32
+# keepalive_vip=10.0.17.10
+[LB:vars]
+
+
+######## - ADM	Apache Application Admin Server
+####################
+# 10.0.17.41 env_type=STG hostname=LCG-STG-ADM-01
+####################
+[ADM]
+
+######## - API  Apache API Server
+####################
+# 10.0.17.42 env_type=STG hostname=LCG-STG-API-01
+####################
+[API]
+
+######## - WEB	Apache Application Web Server
+# Additional variables required
+# Designate one (and only one) system as the stripped
+# DB dump target with variable stripped_db_dump_target=yes
+# Ideally, this should be a secondary or failover system
+# For example:
+# 1.2.3.51
+# 1.2.3.52 stripped_db_dump_target=yes
+#
+# Lsync setup variable - ex: master, client
+# Required by role - 
+# lysnc=
+# 
+# Example
+####################
+# 10.0.17.51 env_type=STG lsync=master hostname=LCG-STG-WEB-01
+# 10.0.17.52 env_type=STG lsync=client hostname=LCG-STG-WEB-02
+####################
+[WEB]
+10.0.{{ stg_vlan }}.51 env_type=STG hostname={{ client_code }}-STG-WEB-01
+
+[WEB:vars]
+####################
+# lsync_master= IP of Master
+# lsync_client= IP of Client
+####################
+####################
+
+
+######## - WHL	Failwhale Server
+####################
+# 10.0.17.61 env_type=STG hostname=LCG-STG-WHL-01
+# 10.0.17.62 env_type=STG hostname=LCG-STG-SRG-01
+####################
+[WHL]
+
+{% if app_type == HYB %}
+######## - Hybris Commerce Core and Data Hub
+####################
+# 10.0.17.151 env_type=STG hostname=LCG-STG-HYB-01
+####################
+[HYB]
+10.0.{{ stg_vlan }}.151 env_type=STG lsync=master hostname={{ client_code }}-STG-HYB-01
+10.0.{{ stg_vlan }}.152 env_type=STG lsync=master hostname={{ client_code }}-STG-HYB-02
+
+[HYB-BackOffice]
+10.0.{{ stg_vlan }}.153 env_type=STG hostname={{ client_code }}-STG-HBO-01
+
+[HYB-StoreFront]
+10.0.{{ stg_vlan }}.154 env_type=STG hostname={{ client_code }}-STG-HSF-01
+
+[HYB-DataHub]
+10.0.{{ stg_vlan }}.161 env_type=STG hostname={{ client_code }}-STG-HDH-01
+
+[HYB-CIS]
+10.0.{{ stg_vlan }}.155 env_type=STG hostname={{ client_code }}-STG-HCIS-01
+
+# Use for all-in-one Hybris Dev boxes
+# 10.0.17.151 env_type=STG hostname=XXX-DEV-ALL-01
+[HYB-DEV]
+
+######## - Hybris Commerce Core
+####################
+# 10.0.17.151 env_type=STG hostname=LCG-STG-HCC-01
+####################
+[HCC]
+10.0.{{ stg_vlan }}.151 env_type=STG hostname={{ client_code }}-STG-HCC-01
+
+{% endif %}
+######## - DB	Database Server
+# Designate the secondary as the Bacula backup target
+# with variable mysql_backup_target=yes
+# For example:
+# 1.2.3.71
+# 1.2.3.72 mysql_backup_target=yes
+#
+# Keepalive setup variale: ex: master, backup
+# Required by role - 
+# keepalive=
+#
+# Replication setup variable: ex: primary, secondary, bi
+# mysql_repl_role=
+# Example
+####################
+# 10.0.17.71 env_type=STG mysql_repl_role=primary keepalive=master hostname=LCG-STG-DB-01
+# 10.0.17.72 env_type=STG mysql_repl_role=secondary keepalive=backup mysql_backup_target=yes hostname=LCG-STG-DB-02
+# 10.0.17.73 env_type=STG mysql_repl_role=bi hostname=LCG-STG-DB-03
+####################
+[DB]
+10.0.{{ stg_vlan }}.71 env_type=STG hostname={{ client_code }}-STG-DB-01
+
+# Group variables
+# mysql_repl_primary=       # Primary server
+# mysql_repl_secondary=     # Secondary server
+# mysql_repl_ro_slave=      # BI server
+# lsync_master=
+# lsync_client=
+# keepalive_master= 
+# keepalive_backup=
+# keepalive_vip= VIP IP
+# Examples:
+########################
+# mysql_repl_primary=10.0.17.71
+# mysql_repl_secondary=10.0.17.72
+# keepalive_master=10.0.17.71
+# keepalive_backup=10.0.17.72
+# keepalive_vip=10.0.17.10 
+# mysql_repl_ro_slave=10.0.17.73
+########################
+[DB:vars]
+mysql_repl_primary=10.0.{{ stg_vlan }}.71
+mysql_repl_secondary=10.0.{{ stg_vlan }}.72
+keepalive_master=10.0.{{ stg_vlan }}.71
+keepalive_backup=10.0.{{ stg_vlan }}.72
+keepalive_vip=10.0.{{ stg_vlan }}.10 
+
+ 
+######## - RED	Redis Server
+# Example
+####################
+# 10.0.17.101 env_type=STG hostname=LCG-STG-RED-01
+# 10.0.17.102 env_type=STG hostname=LCG-STG-RED-02
+# 10.0.17.103 env_type=STG hostname=LRC-STG-RED-02
+####################
+[RED]
+10.0.{{ stg_vlan }}.101 env_type=STG hostname={{ client_code }}-STG-RED-01
+10.0.{{ stg_vlan }}.102 env_type=STG hostname={{ client_code }}-STG-RED-02
+{% if app_type == M1 %}
+    10.0.{{ stg_vlan }}.103 env_type=STG hostname={{ client_code }}-STG-RED-03
+{% endif %}
+
+######## - MEM  Memcache Server
+####################
+# 10.0.17.111 env_type=STG hostname=LCG-STG-MEM-01 
+####################
+[MEM]
+
+######## - DKR  Docker Server
+# Example
+####################
+# 10.0.17.171 env_type=STG hostname=LCG-STG-DKR-01 
+####################
+[DKR]
+
+######## - VAR	Varnish Server
+# Example
+####################
+# 10.0.17.121 env_type=STG hostname=LCG-STG-VAR-01 
+# 10.0.17.122 env_type=STG hostname=LCG-STG-VAR-02
+####################
+[VAR]
+
+######## - SLR	SOLR Server
+####################
+# 10.0.17.131 env_type=STG hosname=LCG-STG-SLR-01
+####################
+[SLR]
+{% if app_type == M1 %}
+    10.0.{{ stg_vlan }}.103 env_type=STG hostname={{ client_code }}-STG-SLR-01
+{% endif %}
+
+######## - RMQ  RabbitMQ Server
+####################
+# 10.0.17.141 env_type=STG hosname=LCG-STG-RMQ-01
+####################
+[RMQ]
+
+######## - MON	Monitor Server
+####################
+# 10.0.17.200 env_type=STG hosname=LCG-STG-MON-01
+####################
+[MON]
+10.0.{{ stg_vlan }}.200 env_type=STG hosname={{ client_code }}-STG-MON-01
+
+######## - CI   Continous Integration (Jenkins) Server
+####################
+# 10.0.17.201 env_type=STG hosname=LCG-STG-CI-01
+####################
+[CI]
+{% if app_type == M2 %}
+    10.0.{{ stg_vlan }}.205 env_type=STG hostname={{ client_code }}-STG-CI-01
+{% endif %}
+
+######## - ELA   ElasticSearch Server
+####################
+# 10.0.17.211 env_type=STG hosname=LCG-STG-SLR-01
+####################
+[ELA]
+{% if app_type == M2 %}
+    10.0.{{ stg_vlan }}.211 env_type=STG hostname={{ client_code }}-STG-ELA-01
+{% endif %}
+
+######## - LT   Load Testing jMeter Server
+# Designate the master server with a variable lt_type=master
+# Designate the slave servers with a variable lt_type=slave
+# Examples:
+# 10.0.17.211 hostname=ANS-STG-LT-01 lt_type=master
+# 10.0.17.212 hostname=ANS-STG-LT-02 lt_type=slave
+[LT]
+
+#
+[DPL]
+
+{% if app_type == M1 %}
+
+######## - M1DD - Magento 1 Deployment Dashboard server
+[M1DD]
+10.0.{{ stg_vlan }}.200 env_type=STG hosname={{ client_code }}-STG-MON-01
+
+[M1DD:vars]
+#deploy_repo="git@bitbucket.org:lyonsconsultinggroup/<REPO>.git"
+
+{% endif %}

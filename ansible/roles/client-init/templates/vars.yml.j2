@@ -1,0 +1,134 @@
+---
+# file: vars.yml
+
+##### CLIENT AND ENVIRONMENT VARS
+# Client Name - Use full proper name. ex: The Cary Company
+# Required by role - basic-build
+# No default variable defined
+- client: {{ client }}
+# Client Tenrox Code - Use the 3 character Tenrox prefix. ex: TCC
+# Required by role - basic-build, ci-jenkins, LYONSCG.bacula
+# No default variable defined
+- client_code: {{ client_code }}
+# 20171026 - This variable is now part of the host item defined in the hosts.ini file. This is left for reference
+# Environment Type - ex: (DMZ) DMZ, (PRD) production, (STG) stage, (DEV) development, or (INT) internal.
+# Required by role - basic-build, LYONSCG.bacula
+# No default variable defined
+#- env_type: 
+# Application Type - ex: (M1) Magento 1, (M2) Magento 2, (HYB) Hybris, (SFCC) Salesforce Commerce Cloud, or (OTH) other.
+# Required by role - db-mysql-install, LYONSCG.rmq, LYONSCG.bacula
+# No default variable defined
+- app_type: {{ app_type }}
+
+# Networking set up. This is used for the initial client set up.
+# Required by role - clientinit
+- dmz_vlan: {{ dmz_vlan }} 
+- stg_vlan: {{ stg_vlan }}
+- prd_vlan: {{ prd_vlan }}
+- stg_public_ip: {{ stg_public_ip }}
+- prd_public_ip: {{ prd_public_ip }}
+
+##### BACKUP CONFIGURATIONS
+# Backup schedule - Review https://lyonscg.atlassian.net/wiki/spaces/AHTS/pages/210912802/Bacula+Standard+Backup+Schedules
+# Required by role LYONSCG.bacula
+# No default value defined
+- bacula_backup_schedule: 
+# Stripped DB restore target - ex: LCG-STG-WEB-01 (The stage web server to automatically restore a stripped DB dump to.)
+# Required by role LYONSCG.bacula
+# No default value defined
+- stripped_db_restore_target: 
+# Stripped DB restore frequency - ex: daily, weekly
+# Required by role LYONSCG.bacula
+# Default value (weekly) defined in roles/LYONSCG.bacula/defaults/main.yml
+- stripped_db_restore_frequency: 
+# Stripped DB restore day - ex: 1 (Monday), 3 (Wednesday)
+# Required by role LYONSCG.bacula
+# Default value (1) defined in roles/LYONSCG.bacula/defaults/main.yml
+- stripped_db_restore_day: 
+# Stripped DB restore time - ex: 16 (4:00 PM), 3 (3:00 AM)
+# Required by role LYONSCG.bacula
+# Default value (8) defined in roles/LYONSCG.bacula/defaults/main.yml
+- stripped_db_restore_time: 
+
+##### WEB CONFIGURATIONS
+# PHP processor (mod_php or PHP-FPM)
+# Required by role - web-php
+# Default value (PHP-FPM) defined in roles/web-php/vars/main.yml
+- php_processor:  {{ php_processor }}
+# FPM max_children
+# Required by role - web-php, if PHP-FPM is used
+# Default value (100) defined in roles/web-php/vars/main.yml
+#- fpm_max_children: 
+# FPM memory limit
+# Required by role - web-php, if PHP-FPM is used
+# Default value (716M) defined in roles/web-php/vars/main.yml
+#- fpm_memory_limit: 
+
+#### DATABASE CONFIGURATIONS
+# MySQL root password. ex: qazxcde1231
+# Required by role - db-mysql-install, mon-zabbix_proxy, LYONSCG.bacula
+# Default value defined in roles/db-mysql-install/vars/main.yml
+#- mysql_root_password: 
+# Primary Servers - The servers which will act as the primary
+#- primary_db:
+#    - 
+# Secondary Servers - The servers which will act as the secondary.
+#- secondary_db:
+#    - 
+
+##### REDIS CONFIGURATIONS
+# Max memory - The maximum memory value to be set in the Redis config. ex: 1500MB
+# Required by role - red-redis
+# Default value defined in roles/red-redis/vars/main.yml
+# - redis_maxmemory: 
+# Configuration Cache - Specifies which server(s) will handle the Configuration Cache.
+#- config_cache:
+#    - 
+# Full Page Cache - Specifies which server(s) will handle the Full Page Cache.
+#- fp_cache:
+#    - 
+
+##### ELASTICSEARCH CONFIGURATIONS
+# Java heap size - The value to be set in the ElasticSearch config. ex: 1500m
+# Required by role - ela-elasticsearch-install
+# Default value defined in roles/ela-elasticsearch-install/vars/main.yml
+- ela_heap_size: 
+
+##### ZABBIX CONFIGURATIONS
+# Zabbix Primary Server - The servers which will act collect and present zabbix info. 
+# ex: 10.0.1.75 (PROD) or 10.0.1.73 (STAGE)
+# Required by role - multi-zabbix_agent
+# No default variable defined
+- prd_zabbix_server: 10.0.1.75
+- stg_zabbix_server: 10.0.1.73
+# Zabbix Proxy Servers - The servers which will act as the zabbix proxy. ex: 10.0.XXX.200
+# Required by role - multi-zabbix_agent
+# No default variable defined
+- prd_zabbix_proxy_server: 10.0.{{ prd_vlan }}.200
+- stg_zabbix_proxy_server: 10.0.{{ stg_vlan }}.200
+# 10/2017 AHA updated to use the variable set in the CLIENT section
+# Zabbix Proxy Name. Use for Zabbix Configuration. ex: JNO-PRD-PROXY
+# Required by role - mon-zabbix_proxy
+# No default variable defined
+#- zabbix_proxy_name: 
+# Zabbix TLS Server's Name. Use for Zabbix Proxy Configuration Field TLSPSKIdentity. ex: JNO-PRD-PSK-01
+# Required by role - mon-zabbix_proxy
+# No default variable defined
+#- tls_id_server: 
+# The following are required by the individual zabbix agent configuration to add the host to Zabbix
+# zabbix_hostgroup is now automatically defined based on the application and client's info above
+# - zabbix_hostgroup: 'HOSTGROUP'
+- zabbix_username: 'zabbix_api'
+- zabbix_password: 'wV4q9pP552R76wbKA647KJG6'
+
+# Required by role - lt-jmeter role to configure the slave nodes
+# For example
+# lt_remote_hosts: 10.0.132.205,10.0.132.206,10.0.132.207
+- lt_remote_hosts: 
+
+
+##### MISCELLANEOUS
+# Debug mode - Useful for gathering facts on all servers Ansible is run against.
+- debug: true
+# Restart - Enables the 'all-restart' role and disables the 'all-bootstrap-repartition' tasks that restart the host.
+- restart: true

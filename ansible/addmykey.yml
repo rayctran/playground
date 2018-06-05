@@ -1,0 +1,22 @@
+- hosts: localhost
+  become: no
+  gather_facts: no
+  tasks:
+  - name: "Remove key if exists for {{ inventory_hostname }} -- tags: ssh-key"
+    shell: ssh-keygen -R {{ inventory_hostname }}
+    ignore_errors: yes
+
+  - name: "Add key for {{ inventory_hostname }} -- tags: ssh-key"
+    shell: ssh-keyscan -H {{ inventory_hostname }} >> ~/.ssh/known_hosts
+    ignore_errors: yes
+
+#- hosts: all
+#  become: no
+#  gather_facts: yes
+#  tasks:
+#  - name: Set authorized key for current user
+#    authorized_key:
+#      user: "{{ lookup('env', 'USER') }}"
+#      state: present
+#      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+

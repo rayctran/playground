@@ -3,7 +3,7 @@
 # When prompted, enter new password
 
 #- hosts: DB:WEB
-- hosts: BLU
+- hosts: ASI
   gather_facts: yes
 #  become: no
 #  become_user: root
@@ -24,6 +24,12 @@
     tags:
       - php-fpm
 
+  - name: "set required percentage to 100%"
+    set_fact:
+      memory_percentage_required: 1
+    tags:
+      - php-fpm
+
   - name: "Set default php memory limit for M1 -- tags: php-fpm"
     set_fact:
        fpm_memory_limit: 512
@@ -32,7 +38,7 @@
     tags:
       - php-fpm
   
-  - name: "Set default php memory limit for M1 -- tags: php-fpm"
+  - name: "Set default php memory limit for M2 -- tags: php-fpm"
     set_fact:
        fpm_memory_limit: 768
     when:
