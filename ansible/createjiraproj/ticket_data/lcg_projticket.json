@@ -1,0 +1,14 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh",
+            "description": "The goal of this project is for the Infrastructure Refresh of LYONSCG per the signed SOW.",
+            "labels": [ "LCG" ],
+            "issuetype": {
+               "name": "Project"
+            }
+        }
+}

@@ -28,7 +28,7 @@
 
   - debug:
       msg: "PowerEdge system"
-    when: platform.stdout | match("PowerEdge*")
+    when: platform.stdout is match("PowerEdge*")
 
   - name: Check mount point /data
     command: mountpoint /data
@@ -48,16 +48,16 @@
 
   - debug:
       msg: "VMWARE - end_play here"
-    when: platform.stdout | match("VMware*")
+    when: platform.stdout is match("VMware*")
 
   - name: I'm out of here because I'm a VM 
     meta: end_play
-    when: platform.stdout | match("VMware*")
+    when: platform.stdout is match("VMware*")
 
   - debug:
       msg: "Not VMWARE"
-    when: not(platform.stdout | match("VMware*"))
+    when: not(platform.stdout is match("VMware*"))
 
   - debug:
       msg: "Not PowerEdge"
-    when: not(platform.stdout | match("PowerEdge*"))
+    when: not(platform.stdout is match("PowerEdge*"))

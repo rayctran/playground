@@ -1,0 +1,84 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+- hosts: localhost
+  gather_facts: no
+  become: no
+  tasks:
+  - set_fact: 
+      client_code: asi
+  - set_fact: 
+      app_type: M2
+
+#  - name: "checkout {{ client_code | lower }}prdconfig"
+#    git:
+#      repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ item }}config.git"
+#      version: HEAD
+#      dest: "./files/{{ client_code | lower }}{{ item }}config"
+#      force: no
+#    with_items:
+#      - dmz
+#      - stg
+#      - prd
+#
+
+  - name: "Clone config repos -- tags: client-init"
+    command: "git clone git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ item }}config.git ./files/{{ client_code | lower }}{{ item }}config"
+    with_items:
+      - prd
+      - stg
+      - dmz
+
+  - name: "Check legacy client's hosts config file"
+    stat:
+      path: "/usr/local/ansible/clients_cfg/{{ client_code }}/{{ client_code }}_hosts.ini"
+    register: hostfile
+
+  - name: "Check legacy client's vars config file"
+    stat:
+      path: "/usr/local/ansible/clients_cfg/{{ client_code }}/{{ client_code }}_vars.yml"
+    register: varsfile
+
+  - name: "Check legacy mysql creds file"
+    stat:
+      path: "/usr/local/ansible/mysql/{{ client_code | upper }}_mysql_creds.yml"
+    register: mysqlcredfile
+
+  - name: "Copy hosts file to the repo"
+    copy:
+      src: "/usr/local/ansible/clients_cfg/{{ client_code }}/{{ client_code }}_hosts.ini"
+      dest: "./files/{{ client_code }}{{ item }}config/{{ app_type }}_hosts.ini"
+    with_items:
+      - dmz
+      - stg
+      - prd
+    when: hostfile.stat.exists == True
+
+  - name: "Copy vars file to the repo"
+    copy:
+      src: "/usr/local/ansible/clients_cfg/{{ client_code }}/{{ client_code }}_vars.yml"
+      dest: "./files/{{ client_code }}{{ item }}config/{{ app_type }}_vars.yml"
+    with_items:
+      - dmz
+      - stg
+      - prd
+    when: varsfile.stat.exists == True
+
+  - name: "Copy mysql cred file to the repo"
+    copy:
+      src: "/usr/local/ansible/mysql/{{ client_code | upper }}_mysql_creds.yml"
+      dest: "./files/{{ client_code }}{{ item }}config/mysql_creds.yml"
+    with_items:
+      - stg
+      - prd
+    when: mysqlcredfile.stat.exists == True
+
+  - name: "Copy README file to the repo"
+    copy:
+      src: "./README"
+      dest: "./files/{{ client_code }}{{ item }}config/README.md"
+    with_items:
+      - dmz
+      - stg
+      - prd

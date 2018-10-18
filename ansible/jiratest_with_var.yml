@@ -1,0 +1,22 @@
+- hosts: localhost
+  become: no
+  gather_facts: no
+  vars:
+    oscsvc_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      66313863346439376139343136383666666339303461623135303735386165663862393234313164
+      3635336364393466613361326265636531333866363339300a366362616565303033623937306261
+      65636465663438383238613238333338303834666635373830343461363461336334663135333533
+      6364316637323864380a653531616430313332356135346231666533343863306239383364636335
+      6434
+  tasks:
+  - name: Create a JIRA issue
+    uri:
+      url: "https://lyonscg.atlassian.net/rest/api/2/issue/"
+      method: POST
+      user: oscsvc
+      password: "{{ oscsvc_password }}"
+      body: "{{ lookup('file','./issue.json') }}"
+      force_basic_auth: yes
+      status_code: 201
+      body_format: json

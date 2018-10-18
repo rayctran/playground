@@ -24,13 +24,15 @@
 
   - debug:
       msg: "VM system"
-    when: platform.stdout == 'VMware Virtual Platform'
+#    when: platform.stdout == 'VMware Virtual Platform'
+    when: platform.stdout is match('VMware Virtual Platform')
 
   - debug:
       msg: "PowerEdge system"
-    when: platform.stdout | match("PowerEdge*")
+#    when: platform.stdout | match("PowerEdge*")
+    when: platform.stdout is  match("PowerEdge*")
 
-  - name: Ccheck mount point /data
+  - name: Check mount point /data
     command: mountpoint /data
     register: mount_stat
     failed_when: False

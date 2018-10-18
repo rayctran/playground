@@ -1,0 +1,15 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "summary": "Project ticket test from Ansible with mutiline description and AIP key",
+            "description": "This is my project\nDo not try to take it\nYou will not live",
+            "labels": [ "AH" ],
+
+            "issuetype": {
+               "name": "Project"
+            }
+        }
+}

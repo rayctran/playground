@@ -1,0 +1,126 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook warner_prep.yml -Kk -i warner-hosts.ini
+
+- hosts: centos
+  remote_user: root
+  gather_facts: yes
+  sudo: no
+  tasks:
+    - name: Create prep directory
+      file: path=/root/migration/{{ item }} state=directory
+      with_items:
+          - backup
+          - backup/etc
+          - backup/sysconfig
+          - backup/network-scripts
+          - etc
+          - sysconfig
+          - network-scripts
+    - name: Backup hosts
+      copy: src=/etc/hosts dest=/root/migration/backup/etc/ remote_src=yes
+    - name: Copying hosts
+      copy: src=/etc/hosts dest=/root/migration/etc/ remote_src=yes
+    - name: Backup network
+      copy: src=/etc/sysconfig/network dest=/root/migration/backup/sysconfig/ remote_src=yes
+    - name: Copying network
+      copy: src=/etc/sysconfig/network dest=/root/migration/sysconfig/ remote_src=yes
+    - name: Backup fstab
+      copy: src=/etc/fstab dest=/root/migration/backup/etc/ remote_src=yes
+    - name: Copying fstab
+      copy: src=/etc/fstab dest=/root/migration/etc/ remote_src=yes
+    - name: Check ifcfg bond0 file
+      stat: path=/etc/sysconfig/network-scripts/ifcfg-bond0
+      register: ifcfg_bond0_file
+    - name: Backing up interface files
+      copy: src=/etc/sysconfig/network-scripts/ifcfg-bond0 dest=/root/migration/backup/network-scripts remote_src=yes
+      when: ifcfg_bond0_file.stat.exists == True
+    - name: Copying interface files
+      copy: src=/etc/sysconfig/network-scripts/ifcfg-bond0 dest=/root/migration/network-scripts remote_src=yes
+      when: ifcfg_bond0_file.stat.exists == True
+    - name: Copying route files
+      copy: src=route-bond0.txt dest=/root/migration/network-scripts/route-bond0
+      when: ifcfg_bond0_file.stat.exists == True
+    - name: update IP
+      replace:
+        dest: /root/migration/network-scripts/ifcfg-bond0
+        regexp: '^IPADDR=10\.0\.55'
+        replace: 'IPADDR=10.0.141'
+    - name: update network
+      replace:
+        dest: /root/migration/network-scripts/ifcfg-bond0
+        regexp: '^NETWORK=10\.0\.55\.0'
+        replace: 'NETWORK=10.0.141.0'
+    - name: Check ifcfg eth0 file
+      stat: path=/etc/sysconfig/network-scripts/ifcfg-eth0
+      register: ifcfg_eth0_file
+    - name: Backing up interface files
+      copy: src=/etc/sysconfig/network-scripts/ifcfg-eth0 dest=/root/migration/backup/network-scripts remote_src=yes
+      when: ifcfg_eth0_file.stat.exists == True
+    - name: Copying interface files
+      copy: src=/etc/sysconfig/network-scripts/ifcfg-eth0 dest=/root/migration/network-scripts remote_src=yes
+      when: ifcfg_eth0_file.stat.exists == True
+    - name: Copying route files
+      copy: src=route-eth0.txt dest=/root/migration/network-scripts/route-eth0
+      when: ifcfg_eth0_file.stat.exists == True
+    - name: update IP
+      replace:
+        dest: /root/migration/network-scripts/ifcfg-bond0
+        regexp: '^IPADDR=10\.0\.55'
+        replace: 'IPADDR=10.0.141'
+#        when: ifcfg_eth0_file.stat.exists == True
+    - name: update network
+      replace:
+        dest: /root/migration/network-scripts/ifcfg-bond0
+        regexp: '^NETWORK=10\.0\.55\.0'
+        replace: 'NETWORK=10.0.141.0'
+    - name: Copying resolv.conf
+      copy: src=resolv.conf.txt dest=/root/migration/etc/resolv.conf force=yes
+    - name: Copying migration script
+      copy: src=migrate_centos_sh.txt dest=/root/migration/migrate.sh mode=755
+
+- hosts: ubuntu
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  tasks:
+    - name: Create prep directory
+      file: path=/root/migration/{{ item }} state=directory
+      with_items:
+          - backup
+          - backup/etc
+          - backup/network
+          - etc
+          - network
+    - name: Backup hosts
+      copy: src=/etc/hosts dest=/root/migration/backup/etc/ remote_src=yes
+    - name: Copying hosts
+      copy: src=/etc/hosts dest=/root/migration/etc/ remote_src=yes
+    - name: Backup hostname
+      copy: src=/etc/hostname dest=/root/migration/backup/etc/ remote_src=yes
+    - name: Copying hostname
+      copy: src=/etc/hostname dest=/root/migration/etc/ remote_src=yes
+    - name: Backup interfaces
+      copy: src=/etc/network/interfaces dest=/root/migration/backup/network/ remote_src=yes
+    - name: Copying hostname
+      copy: src=/etc/network/interfaces dest=/root/migration/network/ remote_src=yes
+    - name: Copying resolv.conf
+      copy: src=resolv.conf.txt dest=/root/migration/etc/resolv.conf force=yes
+    - name: update ip address
+      replace:
+        dest: /root/migration/network/interfaces
+        regexp: '^address 10\.0\.50'
+        replace: 'address 10.0.141'
+    - name: update network route
+      replace:
+        dest: /root/migration/network/interfaces
+        regexp: '^up route add default gw 10\.0\.50\.2'
+        replace: 'up route add default gw 10.0.141.2'
+    - name: update network post-up
+      replace:
+        dest: /root/migration/network/interfaces
+        regexp: '^post-up \/sbin\/ip route add 10\.200\.0\.0\/16 via 10\.0\.50\.254'
+        replace: 'post-up /sbin/ip route add 10.200.0.0/16 via 10.0.141.254'
+    - name: Copying migration script
+      copy: src=migrate_centos_sh.txt dest=/root/migration/migrate.sh mode=755

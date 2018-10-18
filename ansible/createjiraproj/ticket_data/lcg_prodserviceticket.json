@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-62"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh - Systgem and Service Deployment For Production",
+            "description": "Sysgem and service deployment for production including:\n * VM deployment\n * HAproxy Service\n * Web Service\n * Database Service\n * Redis Service\n * Varnish Service \n * Solr or ElasticSearch Service",
+            "labels": [
+                "LCG"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

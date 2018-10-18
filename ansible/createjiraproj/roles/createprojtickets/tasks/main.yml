@@ -1,0 +1,179 @@
+---
+# tasks/main.yml
+- name: "Pull in API cred"
+  include_vars: apicreds.yml
+
+- name: "Create tickets_data directory"
+  file:
+    path: ./tickets_data
+    state: directory
+    mode: 0755
+
+- name: "Get Current Year"
+  shell: date +%Y
+  register: current_year
+
+- name: "Set Default Summary"
+  set_fact: 
+    def_summary: "{{ client_code }} {{ current_year.stdout }}"
+
+- name: "Set summary for ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }}" 
+
+- name: "Set description for ticket"
+  set_fact:
+    ticket_description: "The goal of this project is for the {{ proj_type }} of {{ client }} per the signed SOW."
+
+- name: "Set Up Main Project Iicket"
+  template:
+    src: newissue.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_projticket.json
+
+- name: "Create a top JIRA issue"
+  uri:
+    url: "https://lyonscg.atlassian.net/rest/api/2/issue/"
+    headers:
+      Authorization: "Basic {{ authorization_key }}"
+#      Authorization: "Basic b3Njc3ZjOm5iaTJYb1NSOVI0aHpS"
+    method: POST
+    body: "{{ lookup('file','./tickets_data/{{ client_code | lower }}_projticket.json') }}"
+    force_basic_auth: yes
+    status_code: 201
+    body_format: json
+  register: project_info
+
+- name: "Primary ticket number is {{ ticket_info.json.key }}"
+  set_fact:  
+    main_ticket: "{{ project_info.json.key }}"
+
+- name: "Set summary for planning ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Planning" 
+
+- name: "Set description for planning ticket"
+  set_fact:
+    ticket_description: "Task for tracking planning work."
+
+- name: "Set Up Planning sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_planningticket.json
+
+- name: "Set summary for networking ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Networking and Firewall Configuration" 
+
+- name: "Set description for networking ticket"
+  set_fact:
+    ticket_description: "Networking Configuration tasks: \\n * Allocate VLAN in Ralph\\n * Assign IP address scheme and hostname\\n * Set up switches\\n * Set up Vswitches and VM customization spec\\n * Set up VPNASA access\\n * Set up FWASA communication\\n * Set up DNS"
+
+- name: "Set up network sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_networkticket.json
+
+- name: "Set summary for hardware ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Hardware Procurement" 
+
+- name: "Set description for hardware ticket"
+  set_fact:
+    ticket_description: "This ticket is used to track the hardware procurement process including:\\n * Vendor Quote\\n* Internal Expense Submission, approval and processing\\n * Order Hardware\\n * Hardware delivery\\n * Hardware rack and networking"
+
+- name: "Set Up hardware sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_hardwareticket.json
+
+- name: "Set summary for stage system deployment ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - System and Service Deployment For Stage" 
+
+- name: "Set description for stage system deployment ticket"
+  set_fact:
+    ticket_description: "Sysgem and service deployment for stage including:\\n * VM deployment\\n * HAproxy Service\\n * Web Service\\n * Database Service\\n * Redis Service\\n * Varnish Service \\n * Solr or ElasticSearch Service"
+
+- name: "Set Up for stage sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_stageserviceticket.json
+
+- name: "Set summary for prod system deployment ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Sysgem and Service Deployment For Production" 
+
+- name: "Set description for prod system deployment ticket"
+  set_fact:
+    ticket_description: "Sysgem and service deployment for production including:\\n * VM deployment\\n * HAproxy Service\\n * Web Service\\n * Database Service\\n * Redis Service\\n * Varnish Service \\n * Solr or ElasticSearch Service"
+
+- name: "Set Up for prod system sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_prodserviceticket.json
+
+- name: "Set summary for load balancer configuration ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Set Up Load Balancer Configuration" 
+
+- name: "Set description for load balancer configuration ticket"
+  set_fact:
+    ticket_description: "Set up load balancer configurations on stage and production."
+
+- name: "Set Up for load balancer sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_loadbalancerticket.json
+
+- name: "Set summary for monitor system deployment ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Set Up Monitoring and Log Collection" 
+
+- name: "Set description for monitoring deployment ticket"
+  set_fact:
+    ticket_description: "Set up monitoring and log collection incluging:\\n * Zabbix client\\n * Zabbix Proxy\\n * Graylog dashboard and colletion"
+
+- name: "Set Up for monitoring sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_monitorticket.json
+
+- name: "Set summary for backup system deployment ticket"
+  set_fact:
+    ticket_summary: "{{ client_code }} {{ current_year.stdout }} {{ proj_type }} - Set Up Backup" 
+
+- name: "Set description for backup deployment ticket"
+  set_fact:
+    ticket_description: "Set up backup systems"
+
+- name: "Set Up for backup sub-tasks Iicket"
+  template:
+    src: subtask.json.j2 
+    dest: ./tickets_data/{{ client_code | lower }}_backupticket.json
+
+- name: "Create the sub-tasks"
+  uri:
+    url: "https://lyonscg.atlassian.net/rest/api/2/issue/"
+    headers:
+      Authorization: "Basic {{ authorization_key }}"
+    method: POST
+    body: "{{ lookup('file','./tickets_data/{{ client_code | lower }}_{{ item }}ticket.json') }}"
+    force_basic_auth: yes
+    status_code: 201
+    body_format: json
+  with_items:
+    - planning
+    - network
+    - hardware
+    - stageservice
+    - prodservice
+    - loadbalancer
+    - monitor
+    - backup
+  register: subtask_info
+
+- name: "Clean up local files"
+  file:
+    path: "./tickets_data/"
+    state: absent
+

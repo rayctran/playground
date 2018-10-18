@@ -1,0 +1,17 @@
+{
+    "update": {
+        "timetracking": [{
+            "set": {
+                "originalEstimate": "1",
+                "remainingEstimate": "1"
+            }
+        }],
+        "customfield_10900": [{
+            "set": "1"
+        }],
+        "customfield_12401": [{
+             "set": "1"
+        }]
+    }
+}
+

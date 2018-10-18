@@ -1,0 +1,30 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "summary": "This is a linked ticket",
+            "description": "This is my description\nMultiline mode\nThird line",
+            "labels": "AH",
+            "issuetype": {
+               "name": "Request"
+            }
+        }
+        "update":{
+          "issuelinks":[
+             {
+               "add":{
+                 "type":{
+                   "name":"relates to",
+                    "inward":"relates to",
+                    "outward":"blocks"
+                 },
+                 "outwardIssue":{
+                   "key":"TEST-1"
+                 }
+              }
+           }
+        ]
+     }
+}

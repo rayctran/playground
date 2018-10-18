@@ -1,0 +1,9 @@
+---
+# file: vars.yml
+
+- client: LYONSCG
+- client_code: LCG
+- app_type: M1
+# this is a free form type On-Boarding or Infrastructure Refresh
+- proj_type: Infrastructure Refresh
+- proj_key: AHT

@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-62"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh - Planning",
+            "description": "Task for tracking planning work.",
+            "labels": [
+                "LCG"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

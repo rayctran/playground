@@ -1,0 +1,33 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto em1
+iface em1 inet manual
+bond-master bond0
+bond-primary em1
+
+# The secondary network interface
+auto em3
+iface em3 inet manual
+bond-master bond0
+
+# The bonded interface
+auto bond0
+iface bond0 inet static
+        address 10.0.167.55
+        netmask 255.255.255.0
+        network 10.0.167.0
+        broadcast 10.0.167.255
+        gateway 10.0.167.2
+        # dns-* options are implemented by the resolvconf package, if installed
+        dns-nameservers 10.0.1.240 10.0.4.12
+        dns-search sys.lcgosc.com
+        bond-mode active-backup
+        bond-miimon 100
+        bond-slaves none
+post-up /sbin/ip route add 10.200.0.0/16 via 10.0.167.254

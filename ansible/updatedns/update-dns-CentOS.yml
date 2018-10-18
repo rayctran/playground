@@ -1,0 +1,30 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook warner_prep.yml -Kk -i warner-hosts.ini
+
+- hosts: all
+  gather_facts: no
+  become: no
+  tasks:
+    - name: "Update /etc/resclv.conf"
+      replace:
+        path: /etc/resolv.conf
+        regexp: '10\.0\.1\.241'
+        replace: '10.0.4.12'
+        backup: yes
+      with_items:
+        - /etc/resolv.conf
+        - ./files/interfaces.bond
+
+ - name: "Check legacy client's hosts config file"
+    stat:
+      path: "/usr/local/ansible/clients_cfg/{{ client_code }}/{{ client_code }}_hosts.ini"
+    register: hostfile
+
+    - name: "Update /etc/resclv.conf"
+      replace:
+        path: /etc/sysconfig/network-scripts/ifcfg-bond0
+        regexp: '10\.0\.1\.241'
+        replace: '10.0.4.12'
+        backup: yes
+      when: ansible_distribution == 'CentOS'
+      with_items:

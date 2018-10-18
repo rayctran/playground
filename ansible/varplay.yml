@@ -4,7 +4,7 @@
 
 #- hosts: DB:WEB
 - hosts: DB
-  gather_facts: yes
+#  gather_facts: yes
 #  become: no
 #  become_user: root
 #  remote_user: osc
@@ -32,29 +32,68 @@
 #      msg: "my item is {{ item.stdout }}"
 #    with_items:
 #      - "{{ web_hosts.results }}"
-  - debug:
-      msg: "{{ inventory_hostname }}"
+  - block:
+      - debug:
+          msg: "inventory_hostname is {{ inventory_hostname }}"
 
   - name: Running Command for VLAN
 #    shell: echo {{ inventory_hostname }} | awk -F"." '{print $3}' 
     shell: echo {{ inventory_hostname }} | cut -d "." -f -3
     register: vlan
 
-  - debug:
-      msg: "{{ vlan.stdout }}"
+  - block:
+      - debug:
+          msg: "inventory_hostname is {{ inventory_hostname }}"
+      - debug:
+          msg: "VLAN is {{ vlan.stdout }}"
+      - debug:
+          msg: "ansible_hostname is {{ ansible_hostname }}"
 
-#  - name: Running Command for Hostname
-#    shell: echo {{ hostvars[inventory_hostname].hostname }} | awk -F"-" '{print $3}' 
+#  - name: Running Command for Hostname - this is the variable set in the hosts.ini
+#    shell: echo {{ hostvars[inventory_hostname].hostname }} | awk -F"-" '{print $2}' 
+#    shell: echo $HOSTNAME | awk -F"-" '{print $2}' 
 #    register: hostname
+  - debug:
+      msg: "ansible_hostname is {{ ansible_hostname }}"
 
-######
-#  - debug: 
-#      msg: "{{ hostvars[inventory_hostname] }}"
+  - debug:
+      msg: "ansible_hostname VLAN is {{ inventory_hostname.split('.')[2] }}"
+
+  - debug: 
+#      msg: "{{ hostvars['inventory_hostname']['nodename'] }}"
+#      msg: "{{ hostvars }}"
+#      msg: "{{ hostvars[ansible_hostname] }}"
+# Just plain hostname of the current system
+      msg: "ansible_hostname split {{ ansible_hostname.split('-')[1] }}"
 #      msg: "{{ replica }}"
 #      msg: "{{ repl_p }}"
 #      msg: "Current system is {{ inventory_hostname }} in VLAN {{ vlan.stdout }}"
 #      msg: "Current system is {{ hostvars[inventory_hostname] }}"
 #      msg: "Replication  postion is {{ hostvars['inventory_item']['replica'] }}"
-#
+
 #  - debug: 
 #      msg: "Replication  postion is {{ hostvars['inventory_item']['replica'] }}"
+
+  - name: Set variable
+    set_fact:
+      php_install: 1
+
+  - debug:
+      msg: "install php"
+    when: php_install
+
+
+  - name: Get all the ips of the hosts for the group
+    set_fact:
+      list_of_ips: "{{ groups['DB'] | map('extract',hostvars,'inventory_hostname') | join(' ') }}"
+
+  - debug:
+      msg: "{{ list_of_ips }}"
+
+  - name: Get ip of the first LB
+    set_fact:
+#      list_of_ips: "{{ groups['LB'][0] | map('extract',hostvars,'inventory_hostname') | join(' ') }}"
+      list_of_ips: "{{ groups['LB'][0] }}"
+
+  - debug:
+      msg: "{{ list_of_ips }}"

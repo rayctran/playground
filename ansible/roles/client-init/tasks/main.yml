@@ -15,33 +15,33 @@
   tags:
     - client-ini
 
-#- name: "Clone config repos -- tags: client-init"
-#  git:
-#    repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ item }}config.git"
-#    dest: ./files/{{ client_code | lower }}config
-#    accept_hostkey: yes
-#  run_once: yes
-#  become: no
-#  with_items:
-#    - prd
-#    - stg
-#    - dmz
-#  tags:
-#    - client-init
-#
-
-# This is in place of the bitbucket repos. Comment this out to switch to Bitbucket
-- name: "Creating LYONSCG custom Zabbix script directory"
-  file:
-    path: ./files/{{client_code | lower }}{{ item }}config
-    state: directory
-    mode: 0755
+- name: "Clone config repos -- tags: client-init"
+  git:
+    repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ item }}config.git"
+    dest: ./files/{{ client_code | lower }}config
+    accept_hostkey: yes
+  run_once: yes
+  become: no
   with_items:
     - prd
     - stg
     - dmz
   tags:
-    - client-ini
+    - client-init
+
+
+# This is in place of the bitbucket repos. Comment this out to switch to Bitbucket
+#- name: "Creating LYONSCG custom Zabbix script directory"
+#  file:
+#    path: ./files/{{client_code | lower }}{{ item }}config
+#    state: directory
+#    mode: 0755
+#  with_items:
+#    - prd
+#    - stg
+#    - dmz
+#  tags:
+#    - client-ini
 
 - name: "Setting up DMZ hosts file -- tags: client-init"
   template:
@@ -72,7 +72,7 @@
 
 - name: "Setting up fwasa file -- tags: client-init"
   template:
-    src: fwasa.j2
+    src: {{ app_type }}_fwasa.j2
     dest: "./files/{{ client_code | lower }}prdconfig/fwasa.txt"
     mode: 0644
   tags:

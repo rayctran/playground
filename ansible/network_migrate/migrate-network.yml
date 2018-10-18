@@ -1,0 +1,28 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook warner_prep.yml -Kk -i warner-hosts.ini
+
+- hosts: localhost
+  gather_facts: no
+  become: no
+  tasks:
+    - set_fact:
+        old_vlan: "7"
+    - set_fact:
+        new_vlan: "167"
+
+    - name: "Update vlan in hosts file"
+      replace:
+        path: "{{ item }}"
+        regexp: '10\.0\.{{ old_vlan }}\.([0-9]*)'
+        replace: '10.0.{{ new_vlan }}.\1'
+        backup: yes
+      with_items:
+        - ./files/hosts
+        - ./files/interfaces.bond
+
+#    - name: "Update vlan in interfaces"
+#      replace:
+#        path: ./files/interfaces.bond
+#        regexp: '10\.0\.{{ old_vlan }}\.([0-9]*)'
+#        replace: '10.0.{{ new_vlan }}.\1'
+#        backup: yes

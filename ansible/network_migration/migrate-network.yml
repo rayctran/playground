@@ -1,0 +1,41 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook warner_prep.yml -Kk -i warner-hosts.ini
+
+- hosts: all
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  tasks:
+   - meta: end_play
+     when: ansible_distribution == 'CentOS'
+   - name: Create prep directory
+     file: 
+        path: /root/network_backup 
+        state: directory
+
+   - name: Backup hosts
+     copy: 
+       src: /etc/hosts 
+       dest: /root/network_backup/ 
+       remote_src: yes
+
+   - name: Backup interfaces
+     copy: 
+       src: /etc/network/interfaces 
+       dest: /root/network_backup/ 
+       remote_src: yes
+
+   - name: "Update vlan in hosts file"
+     replace:
+       path: /etc/hosts
+       regexp: '^10\.0\.{{ old_vlan }}\.([0-9]*)'
+       replace: '10.0.{{ new_vlan }}.\1'
+
+   - name: "Update vlan in interfaces"
+     replace:
+       path: /etc/network/interfaces
+       regexp: '10\.0\.{{ old_vlan }}\.([0-9]*)'
+       replace: '10.0.{{ new_vlan }}.\1'
+

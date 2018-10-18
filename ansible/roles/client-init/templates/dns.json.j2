@@ -1,0 +1,91 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "{{ client_code }}AHS"
+            },
+            "summary": "DNS Update",
+            "description": "This is my description\n Multiline mode ",
+            "issuetype": {
+               "name": "Request"
+            }
+            "labels": "DNS",
+        }
+}
+
+1. Update serial number
+
+2. Internal Zone Changes
+
+
+;### {{ client }} Magento 1
+{{ client_code }}-DMZ-LB-VIP-01		    IN A		10.0.{{ dmz_vlan }}.10
+{{ client_code }}-DMZ-LB-01		    IN A		10.0.{{ dmz_vlan }}.31
+{{ client_code }}-DMZ-LB-02		    IN A		10.0.{{ dmz_vlan }}.32
+{{ client_code }}-DMZ-LB-03		    IN A		10.0.{{ dmz_vlan }}.33
+{{ client_code }}-DMZ-VAR-01	            IN A	        10.0.{{ dmz_vlan }}.121
+{{ client_code }}-DMZ-VAR-02	            IN A	        10.0.{{ dmz_vlan }}.122
+{{ client_code }}-STG-WEB-01	            IN A	        10.0.{{ stg_vlan }}.51
+{{ client_code }}-STG-DB-01	            IN A	        10.0.{{ stg_vlan }}.71
+{{ client_code }}-STG-RED-01	            IN A	        10.0.{{ stg_vlan }}.101
+{{ client_code }}-STG-RED-02	            IN A	        10.0.{{ stg_vlan }}.102
+{% if app_type==M1 %}
+{{ client_code }}-STG-RED-03	            IN A	        10.0.{{ stg_vlan }}.103
+{{ client_code }}-STG-SLR-01	            IN A	        10.0.{{ stg_vlan }}.131
+{% endif %}
+{% if app_type==M2 %}
+{{ client_code }}-STG-ELA-01	            IN A	        10.0.{{ stg_vlan }}.131
+{{ client_code }}-STG-CI-01	            IN A	        10.0.{{ stg_vlan }}.205
+{% endif %}
+{{ client_code }}-STG-MON-01	            IN A	        10.0.{{ stg_vlan }}.200
+{{ client_code }}-DEV-ALL-01	            IN A	        10.0.{{ stg_vlan }}.211
+
+{{ client_code }}-PRD-WEB-01  	            IN A	        10.0.{{ prd_vlan }}.51
+{{ client_code }}-PRD-WEB-02	            IN A	        10.0.{{ prd_vlan }}.52
+{{ client_code }}-PRD-WEB-03	            IN A	        10.0.{{ prd_vlan }}.53
+{{ client_code }}-PRD-WEB-04	            IN A	        10.0.{{ prd_vlan }}.54
+{{ client_code }}-PRD-WEB-01A	            IN A	        10.0.{{ prd_vlan }}.80
+{% if app_type==M1 %}
+{{ client_code }}-PRD-ADM-01  	            IN A	        10.0.{{ prd_vlan }}.41
+{% endif %}
+{{ client_code }}-PRD-SRG-01  	            IN A	        10.0.{{ prd_vlan }}.61
+{{ client_code }}-PRD-SRG-02  	            IN A	        10.0.{{ prd_vlan }}.62
+{{ client_code }}-PRD-DB-VIP-01	            IN A	        10.0.{{ prd_vlan }}.10
+{{ client_code }}-PRD-DB-01	            IN A	        10.0.{{ prd_vlan }}.71
+{{ client_code }}-PRD-DB-02	            IN A	        10.0.{{ prd_vlan }}.72
+{{ client_code }}-PRD-DB-01A	            IN A	        10.0.{{ prd_vlan }}.81
+{{ client_code }}-PRD-RED-01	            IN A	        10.0.{{ prd_vlan }}.101
+{{ client_code }}-PRD-RED-02	            IN A	        10.0.{{ prd_vlan }}.102
+{% if app_type==M1 %}
+{{ client_code }}-PRD-RED-03	            IN A	        10.0.{{ prd_vlan }}.103
+{{ client_code }}-PRD-ELA-01	            IN A	        10.0.{{ prd_vlan }}.131
+{% endif %}
+{% if app_type==M2 %}
+{{ client_code }}-PRD-ELA-01	            IN A	        10.0.{{ prd_vlan }}.131
+{{ client_code }}-PRD-CI-01	            IN A	        10.0.{{ prd_vlan }}.205
+{% endif %}
+{{ client_code }}-PRD-MON-01	            IN A	        10.0.{{ prd_vlan }}.200
+
+{% if app_type==M1 %}
+{{ client_code | lower }}-m1-prd		  IN CNAME	{{ client_code }}-DMZ-LB-VIP-01
+{{ client_code | lower }}-m1-prod		  IN CNAME	{{ client_code }}-DMZ-LB-VIP-01
+{{ client_code | lower }}-m1-dev	          IN CNAME	{{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m1-stg	          IN CNAME	{{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m1-stg-deploy	          IN CNAME	{{ client_code }}-STG-MON-01
+{{ client_code | lower }}-m1-prd-deploy		  IN CNAME	{{ client_code }}-PRD-MON-01
+{% endif %}
+{% if app_type==M2 %}
+{{ client_code | lower }}productionjenkins        IN CNAME      {{ client_code }}-DMZ-LB-VIP-01
+{{ client_code | lower }}-m2-prd                  IN CNAME      {{ client_code }}-DMZ-LB-VIP-01
+{{ client_code | lower }}-m2-prod                 IN CNAME      {{ client_code }}-DMZ-LB-VIP-01
+{{ client_code | lower }}stagejenkins             IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-dev                  IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-stg                  IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-preprod              IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-demo1                IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-demo2                IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-docs                 IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-qa                   IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-ref                  IN CNAME      {{ client_code }}-DMZ-LB-03
+{{ client_code | lower }}-m2-test                 IN CNAME      {{ client_code }}-DMZ-LB-03
+{% endif %}

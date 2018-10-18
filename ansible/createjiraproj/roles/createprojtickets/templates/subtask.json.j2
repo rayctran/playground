@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "{{ proj_key }}"
+            },
+            "parent":
+            {
+                "key": "{{ main_ticket }}"
+            },
+            "summary": "{{ ticket_summary  }}",
+            "description": "{{ ticket_description }}",
+            "labels": [
+                "{{ client_code }}"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

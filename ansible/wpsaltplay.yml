@@ -1,0 +1,83 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+#- hosts: DB:WEB
+- hosts: localhost
+  gather_facts: no
+
+  tasks:
+  - name: "Setting db user name"
+    set_fact:
+      mysql_user: "ans_wpuser"
+
+  - name: "Setting db user password"
+    set_fact:
+      mysql_dbuser_password: "8dafdjfldadf"
+
+  - name: "Setting db name"
+    set_fact:
+      mysql_db_name: "ANSPRDWP"
+
+  - name: "Get IP of the first Database host -- tags: word-press"
+    set_fact:
+      db_host: "{{ groups['DB'][0] }}"
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('AUTH_KEY'" ./wpsalt.txt  | cut -d\' -f 4
+    register: auth_key
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('SECURE_AUTH_KEY'" ./wpsalt.txt  | cut -d\' -f 4
+    register: sec_auth_key
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('LOGGED_IN_KEY'" ./wpsalt.txt  | cut -d\' -f 4
+    register: logged_in_key
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('NONCE_KEY'" ./wpsalt.txt  | cut -d\' -f 4
+    register: nonce_key
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('AUTH_SALT'" ./wpsalt.txt  | cut -d\' -f 4
+    register: auth_salt
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('SECURE_AUTH_SALT'" ./wpsalt.txt  | cut -d\' -f 4
+    register: sec_auth_salt
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('LOGGED_IN_SALT'" ./wpsalt.txt  | cut -d\' -f 4
+    register: logged_in_salt
+
+  - name: Setting server_id from the hostname
+    shell: egrep "^define\('NONCE_SALT'" ./wpsalt.txt  | cut -d\' -f 4
+    register: nonce_salt
+
+  - name: Update WordPress config file
+    replace:
+      path: "./wp-config.php"
+      regexp: "{{ item.regexp }}"
+      replace: "{{ item.line }}"
+      backup: yes
+    with_items:
+      - {'regexp': "^define\\('AUTH_KEY',\\s*'put your unique phrase here'\\);", 'line': "define('AUTH_KEY', '{{auth_key.stdout}}');"}
+      - {'regexp': "^define\\('SECURE_AUTH_KEY',\\s*'put your unique phrase here'\\);", 'line': "define('SECURE_AUTH_KEY', '{{sec_auth_key.stdout}}');"}
+      - {'regexp': "^define\\('LOGGED_IN_KEY',\\s*'put your unique phrase here'\\);", 'line': "define('LOGGED_IN_KEY', '{{logged_in_key.stdout}}');"}
+      - {'regexp': "^define\\('NONCE_KEY',\\s*'put your unique phrase here'\\);", 'line': "define('NONCE_KEY', '{{nonce_key.stdout}}');"}
+      - {'regexp': "^define\\('AUTH_SALT',\\s*'put your unique phrase here'\\);", 'line': "define('AUTH_SALT', '{{auth_salt.stdout}}');"}
+      - {'regexp': "^define\\('SECURE_AUTH_SALT',\\s*'put your unique phrase here'\\);", 'line': "define('SECURE_AUTH_SALT', '{{sec_auth_salt.stdout}}');"}
+      - {'regexp': "^define\\('LOGGED_IN_SALT',\\s*'put your unique phrase here'\\);", 'line': "define('LOGGED_IN_SALT', '{{logged_in_salt.stdout}}');"}
+      - {'regexp': "^define\\('NONCE_SALT',\\s*'put your unique phrase here'\\);", 'line': "define('NONCE_SALT', '{{nonce_salt.stdout}}');"}
+
+  - name: Update WordPress config file
+    replace:
+      path: "./wp-config.php"
+      regexp: "{{ item.regexp }}"
+      replace: "{{ item.line }}"
+    with_items:
+      - {'regexp': "^define\\('DB_NAME',\\s*'database_name_here'\\);", 'line': "define('DB_NAME', '{{mysql_db_name}}');"}
+      - {'regexp': "^define\\('DB_USER',\\s*'username_here'\\);", 'line': "define('DB_USER', '{{mysql_user}}');"}
+      - {'regexp': "^define\\('DB_PASSWORD',\\s*'password_here'\\);", 'line': "define('DB_PASSWORD', '{{mysql_dbuser_password}}');"}
+      - {'regexp': "^define\\('DB_HOST',\\s*'localhost'\\);", 'line': "define('DB_HOST', '{{db_host}}');"}

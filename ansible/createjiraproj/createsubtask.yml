@@ -1,0 +1,45 @@
+- hosts: localhost
+  vars_files:
+    - vars.yml
+  become: no
+  gather_facts: no
+  tasks:
+
+  - name: "Pull in API cred"
+    include_vars: apicreds.yml
+
+  - name: "Create a JIRA issue"
+    uri:
+      url: "https://lyonscg.atlassian.net/rest/api/2/issue/"
+      headers:
+        Authorization: "Basic {{ authorization_key }}"
+      method: POST
+#      user: oscsvc
+#      password: "{{ oscsvc_password }}"
+      body: "{{ lookup('file','./ticket_data/subtask.json') }}"
+      force_basic_auth: yes
+      status_code: 201
+      body_format: json
+    register: ticket_info
+
+  - name: "Show me the money"
+    debug:
+      msg: "{{ ticket_info.json.key }}"
+
+#  - name: "Update a JIRA issue"
+#    uri:
+#      url: "{{ ticket_info.json.self }}"
+#      headers:
+#        Authorization: "Basic {{ authorization_key }}"
+#      method: PUT
+#      body: "{{ lookup('file','./issueupdate.json') }}"
+#      force_basic_auth: yes
+#      status_code: 201
+#      body_format: json
+#    register: ticket_update_info
+
+
+#  - name: "Show me the money"
+#    debug:
+#      msg: "{{ ticket_update_info }}"
+

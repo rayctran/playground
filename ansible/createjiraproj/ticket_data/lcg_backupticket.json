@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-62"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh - Set Up Backup",
+            "description": "Set up backup systems",
+            "labels": [
+                "LCG"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

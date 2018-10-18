@@ -7,20 +7,15 @@
   become: no
   tasks:
   - set_fact: 
-      client_code: LCGAH
-      env_type: DMZ
+      client_code: arm
 
-  - debug:
-      msg: "{{ hostvars }}"
-
-#  - debug:
-#      msg: "I'm {{ ansible_user_id }}"
-
-  - name: "checkout {{ client_code | lower }}config"
+  - name: "checkout {{ client_code | lower }}prdconfig"
     git:
-      repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}config.git"
-      version: master
-      dest: ~/ansible/clients/{{ client_code | lower }}config
-      accept_hostkey: yes
-    become: yes
-    become_user: rtran
+      repo: "git@bitbucket.org:lyonsconsultinggroup/{{ client_code | lower }}{{ item }}config.git"
+      version: HEAD
+      dest: "./files/{{ client_code | lower }}{{ item }}config"
+      force: no
+    with_items:
+      - dmz
+      - stg
+      - prd

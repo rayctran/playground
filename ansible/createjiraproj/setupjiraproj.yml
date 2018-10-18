@@ -1,0 +1,7 @@
+- hosts: localhost
+  vars_files:
+    - projinitvars.yml
+  become: no
+  gather_facts: no
+  roles:
+    - createprojtickets

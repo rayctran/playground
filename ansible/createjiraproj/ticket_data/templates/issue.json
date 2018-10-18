@@ -1,0 +1,14 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "summary": "Fifth test from Ansible with mutiline description and AIP key",
+            "description": "This is my description\nMultiline mode\nThird line",
+            "labels": "AH",
+            "issuetype": {
+               "name": "Request"
+            }
+        }
+}

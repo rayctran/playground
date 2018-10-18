@@ -1,0 +1,11 @@
+Application Hosting Configuration Management - Manual build 
+client: Bayou Steel 
+client_code: ARM 
+app_type: HYB
+
+Networking Configuration 
+dmz_vlan: 114 
+stg_vlan: 116 
+prd_vlan: 115 
+stg_public_ip: 216.86.146.178 
+prd_public_ip: 216.86.146.177

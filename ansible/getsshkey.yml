@@ -1,0 +1,15 @@
+- hosts: CI
+  vars_files:
+    - vars.yml
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+
+  tasks:
+  - name: "Get key files from {{ inventory_hostname }}"
+    fetch:
+      src: "/var/lib/jenkins/.ssh/id_rsa.pub"
+      dest: "./files/{{ inventory_hostname }}/"
+      flat: yes

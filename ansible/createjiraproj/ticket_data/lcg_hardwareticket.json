@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-62"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh - Hardware Procurement",
+            "description": "This ticket is used to track the hardware procurement process including:\n * Vendor Quote\n* Internal Expense Submission, approval and processing\n * Order Hardware\n * Hardware delivery\n * Hardware rack and networking",
+            "labels": [
+                "LCG"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

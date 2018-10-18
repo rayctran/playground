@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-58"
+            },
+            "summary": "This is a linked ticket",
+            "description": "This is my description\nMultiline mode\nThird line",
+            "labels": [
+                "AH"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

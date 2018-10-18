@@ -1,0 +1,11 @@
+iface lo inet loopback
+auto lo
+
+auto eth0
+iface eth0 inet static
+address 10.0.7.202
+netmask 255.255.255.0
+up route add default gw 10.0.7.2
+dns-search      lcgosc.com
+dns-nameservers 10.0.1.240 10.0.4.12
+post-up /sbin/ip route add 10.200.0.0/16 via 10.0.7.254

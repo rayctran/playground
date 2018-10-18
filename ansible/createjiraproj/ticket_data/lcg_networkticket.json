@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-62"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh - Networking and Firewall Configuration",
+            "description": "Networking Configuration tasks\nAllocate VLAN in Ralph\nAssign IP address scheme and hostname\nSet up switches\nSet up Vswitches and VM customization spec\nSet up VPNASA access\nSet up FWASA communication\nSet up DNS",
+            "labels": [
+                "LCG"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

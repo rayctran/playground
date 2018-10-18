@@ -18,13 +18,13 @@
     become_user: root
     become_method: sudo
 
-#- hosts: all
-#  become: no
-#  gather_facts: yes
-#  tasks:
-#  - name: Set authorized key for current user
-#    authorized_key:
-#      user: "{{ lookup('env', 'USER') }}"
-#      state: present
-#      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+- hosts: all
+  become: no
+  gather_facts: yes
+  tasks:
+  - name: Set authorized key for current user
+    authorized_key:
+      user: "{{ lookup('env', 'USER') }}"
+      state: present
+      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
 

@@ -1,0 +1,20 @@
+{
+        "fields": {
+            "project":
+            {
+                "key": "AHT"
+            },
+            "parent":
+            {
+                "key": "AHT-62"
+            },
+            "summary": "LCG 2018 Infrastructure Refresh - Set Up Monitoring and Log Collection",
+            "description": "Set up monitoring and log collection incluging:\n * Zabbix client\n * Zabbix Proxy\n * Graylog dashboard and colletion",
+            "labels": [
+                "LCG"
+            ],
+            "issuetype": {
+               "name": "Project Sub-Task"
+            }
+        }
+}

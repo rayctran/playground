@@ -1,0 +1,14 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook chrootpasswd.yml -Kk -i hosts.ini
+# When prompted, enter new password
+
+- hosts: localhost
+  gather_facts: no
+  become: no
+  tasks:
+  - set_fact: 
+      client_code: ANS
+      env_type: DMZ
+
+  - debug:
+      msg: "{{ roles_path }}"

@@ -1,0 +1,53 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook warner_prep.yml -Kk -i warner-hosts.ini
+
+- hosts: all
+  gather_facts: yes
+  become: yes
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  tasks:
+    - name: "Update files"
+      replace:
+        path: /etc/resolv.conf
+        regexp: '10\.0\.1\.241'
+        replace: '10.0.4.12'
+        backup: yes
+      with_items:
+        - /etc/resolv.conf
+        - /etc/network/interfaces
+      when: ansible_distribution == "Ubuntu"
+
+    - name: "for bond0 on CentOS"
+      stat:
+        path: "/etc/network-scripts/ifcfg-bond0"
+      register: bond0
+      when: ansible_distribution == "CentOS"
+
+    - name: "for eth0 on CentOS"
+      stat:
+        path: "/etc/network-scripts/ifcfg-eth0"
+      register: eth0
+      when: ansible_distribution == "CentOS"
+
+    - name: "Update CentOS ifcfg-bond0 file"
+      replace:
+        path: /etc/network-scripts/ifcfg-bond0
+        regexp: '10\.0\.1\.241'
+        replace: '10.0.4.12'
+        backup: yes
+      when: ansible_distribution == "CentOS" and bond0.stat.exists == True
+
+    - name: "Update CentOS ifcfg-eth0 file"
+      replace:
+        path: /etc/network-scripts/ifcfg-eth0
+        regexp: '10\.0\.1\.241'
+        replace: '10.0.4.12'
+        backup: yes
+      when: ansible_distribution == "CentOS" and eth0.stat.exists == True
+
+
+
+
+

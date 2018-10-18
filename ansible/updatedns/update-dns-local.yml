@@ -1,0 +1,23 @@
+# To run this playbook, use the following command and your credentials for loggin in:
+#    ansible-playbook warner_prep.yml -Kk -i warner-hosts.ini
+
+- hosts: localhost
+  gather_facts: no
+  become: no
+  become_user: root
+  become_method: sudo
+  remote_user: osc
+  tasks:
+  - name: "Update files"
+    replace:
+      path: "{{ item }}"
+      regexp: '10\.0\.1\.241'
+      replace: '10.0.4.12'
+      backup: yes
+    with_items:
+      - ./files/interfaces
+      - ./files/resolv.conf
+
+
+
+
