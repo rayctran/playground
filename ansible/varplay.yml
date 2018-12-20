@@ -3,8 +3,8 @@
 # When prompted, enter new password
 
 #- hosts: DB:WEB
-- hosts: DB
-#  gather_facts: yes
+- hosts: LB
+  gather_facts: yes
 #  become: no
 #  become_user: root
 #  remote_user: osc
@@ -73,6 +73,12 @@
 
 #  - debug: 
 #      msg: "Replication  postion is {{ hostvars['inventory_item']['replica'] }}"
+  - name: Set environment
+    set_fact:
+      env_type: "{{ ansible_hostname.split('-')[1] }}"
+
+  - debug:
+      msg: "env_type is {{ env_type }}"
 
   - name: Set variable
     set_fact:
@@ -97,3 +103,30 @@
 
   - debug:
       msg: "{{ list_of_ips }}"
+
+  - name: Get hostname of first LB
+    set_fact:
+#      hostname_funk: "{{ groups['LB'][0] | map('extract',hostvars,'ansible_hostname') }}"
+      hostname_funk: "{{ hostvars[groups['LB'][0]]['ansible_hostname'] }}"
+    run_once: yes
+
+
+  - debug:
+      msg: "{{ hostname_funk }}"
+# 
+#  - name: set force_restart
+#    set_fact: 
+#      force_restart: 1
+
+  - debug:
+      msg: "force_restart is not defined "
+    when: force_restart is undefined
+
+  - debug:
+      msg: "force_restart env_type is {{ env_type }} "
+    when: 
+      - force_restart is defined 
+      - force_restart
+
+  - debug:
+      msg: "{{ hostvars }}"
