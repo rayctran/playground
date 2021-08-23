@@ -1,234 +1,121 @@
-#!/usr/bin/perl
+#!/bin/sh
+#The next line is executed by bin/sh
+exec perl $0 ${1+"$@"}
 
-chomp($Cores = `cat /proc/cpuinfo | grep processor | wc -l`);
-chomp($TotalRam = `free -g  | awk '/Mem/{print \$2}'`);
-chomp($DiskSpace =  `df -h | grep mapper | awk '{print \$2}'`);
-chomp($HostName =  `hostname`);
-chomp($HardWare =  `dmidecode -t 1`);
+chop ($hostname=`uname -n`);
+chop ($ver=`uname -r`);
+chop ($me=`whoami`);
+$DataDir="/admin/data/sysinfo";
+$Bindir="/home/admin/adm/bin.sun4";
+chop ($Today=`date +%y%m%d`);
 
-$phpPackages = `rpm -qa | grep php | sort`;
-$mysqlPackages = `rpm -qa | grep mysql | sort`;
-$httpPackages = `rpm -qa | grep httpd | sort`;
-#!/tools/rational/brcm/perl/bin/perl
-#
-# This script file is used with cron to optain information about remote servers.
-# Input required
-# $1 Server's name
-#
-
-use File::Basename;
-use File::stat;
-use Mail::Sendmail;
-
-if ( $#ARGV < 0 ) {
-    $Prompt=0;
-    print "Usage: $0 server\n";
-    exit (1);
+if ($ver =~ /^4.1/) {
+	$Dir="$Bindir/sysinfosunos";
+	$OS="sunos";
+} elsif ($ver =~ /^5.4/) {
+	$Dir="$Bindir/sysinfo2.4";
+	$OS="solaris";
+} elsif ($ver =~ /^5.5/) {
+	$Dir="$Bindir/sysinfo2.5";
+	$OS="solaris";
+} elsif ($ver =~ /^5.6/) {
+	$Dir="$Bindir/sysinfo2.6";
+	$OS="solaris";
 } else {
-        $Server=$ARGV[0];
+	exit 0;
 }
-chop ($ThisHost=`hostname`);
-open(PING,"/usr/sbin/ping $Server |") or die "Couldn't ping server\n";
-while(<PING>) {
-    if (/^no/) {
-        print "$Server is not available\n Try again later.\n";
-        &Notify("raytran\@broadcom.com","CC_MONITOR_WARNING - No response from $Server.\n","Warning, $Server did not response to the ping process from the monitor server $ThisHost.\n\n\n");
-        exit (1);
-    }
+$Syso="$DataDir/$OS.sysinfo.$hostname";
+$Patcho="$DataDir/$OS.patches.$hostname";
+$Crono="$DataDir/crontab.$hostname";
+$Dfo="$DataDir/diskinfo.$hostname";
+@Files=($Syso,$Patcho,$Crono,$Dfo);
+# Backup files 
+foreach $i (@Files) {
+	if (-e $i) {
+		print "File $i exists, renaming file\n";
+		rename ($i, "$i.$Today")|| die "Can't create $i.$Today";
+	}
 }
-chop($Today=`date`);
-#
-$LogDir="/projects/ccase_irva/logs/${Server}/";
-$GeneralLog="${LogDir}/general.log";
-$CpuLog="${LogDir}/cpu.log";
-$NetStatLog="${LogDir}/netstat.log";
-$DfLog="${LogDir}/df.log";
-$VobSpaceLog="${LogDir}/vobspace.log";
-$CCVerLog="${LogDir}/ccver.log";
-$WhoLog="${LogDir}/who.log";
-$TopTenProcsLog="${LogDir}/toptenprocs.log";
-$CCProcsLog="${LogDir}/ccprocs.log";
-# ClearCase Logs
-
-$CT="/opt/rational/clearcase/bin/cleartool";
-
-open(INFOLOG,">$GeneralLog") || die "Can't open general log file\n";
-print INFOLOG "Status for $Server as of $Today\n";
-open(PRT, "rsh $Server /usr/platform/`uname -m`/sbin/prtdiag |");
-while(<PRT>) {
-    print INFOLOG $_;
+print "Creating system information file\n";
+`$Dir/sysinfo -cfdir $Dir/config @ARGV -level all> $Syso`;
+#Create Crontab backup
+print "Creating crontab backup file\n";
+`/bin/crontab -l > $Crono`;
+if ($OS eq "solaris") {
+	print "Creating patch listing\n";
+	`/bin/showrev -p > $Patcho`;
+	print "Creating df file\n";
+	&add_info($Dfo,"\n\tMount Table\n\n");
+	`cp /etc/vfstab $Dfo`;
+	&add_info($Dfo,"\n\tDisk Free Report\n\n");
+	`df -k >> $Dfo`;
+	$PScom="ps -ef"
 }
-close(PRT);
-open(UPTIME, "rsh $Server uptime |");
-while (<UPTIME>) {
-    print INFOLOG $_;
-}
-close(UPTIME);
-close(INFOLOG);
-
-# Top Ten Processes
-open(TOPPROCSLOG,">$TopTenProcsLog") || die "Can't open top ten processes log file\n";
-open(TOPPROCS, "rsh $Server /usr/ucb/ps -auxxxxxx \| head -10 | ");
-while(<TOPPROCS>) {
-     print TOPPROCSLOG $_;
-}
-close(TOPPROCS);
-close(TOPPROCSLOG);
-
-# ClearCase Processes
-open(PROCSLOG,">$CCProcsLog") || die "Can't open ClearCase processes log file\n";
-open(PROCS, "rsh $Server /usr/ucb/ps -auxxxxxx \| egrep \"(atria|db_server|view_server|vob_server)\" | ");
-while(<PROCS>) {
-     print PROCSLOG $_;
-    ($owner,$pid,$cpu,$mem,$sz,$rss,$tt,$s,$start,$time,$comm)=split(/ +/);
-    if ( $cpu > 15 ) {
-        print "$owner, $pid\n";
-#        &Notify("raytran\@broadcom.com","CC_MONITOR_WARNING: process $comm has $cpu% of the CPU on $Server\n");
-    }
-}
-close(PROCS);
-close(PROCSLOG);
-
-
-# CPU
-open(CPULOG,">$CpuLog") || die "Can't open CPU log file\n";
-open(CPU, "rsh $Server sar -u 2 10 |");
-while (<CPU>) {
-    if (/^Average/) {
-        print CPULOG $_;
-    }
-}
-close(CPU);
-close(CPULOG);
-
-# Netstat
-open(NSLOG,">$NetStatLog") || die "Can't open Netstat Log file\n";
-open(NS, "rsh $Server netstat -i -I hme0 2 10|");
-while (<NS>) {
-    print NSLOG $_;
-}
-close(NS);
-close(NSLOG);
-
-
-# DF
-open(DFLOG,">$DfLog") || die "Can't open DF Log file\n";
-open(DF, "rsh $Server df -k -F ufs|");
-while (<DF>) {
-    print DFLOG $_;
-}
-close(DF);
-
-# Determine storage location
-open(SL, "rsh $Server $CT lsstgloc -vob|");
-while(<SL>) {
-#    print $_;
-    ($N,$NA,$Location)= split(/ +/);
-}
-#print "$Location\n";
-$Loc=dirname($Location);
-#print "$Loc\n";
-open(DFL, "rsh $Server df -k $Loc|");
-while(<DFL>) {
-    next if /^Filesystem/;
-    ($filesystem,$kbytes,$used,$avail,$capacity,$mounted)=split(/ +/);
-    print DFLOG $_;
-#    ($capacity = $capacity) =~ s/\%//;
-    print "disk space left is $avail\n";
-    if ( $avail < 1500000 ) {
-#    print "Over 90\%\n";
-        &Notify("raytran\@broadcom.com","CC_MONITOR_WARNING: current available space of $avail on disk $Loc of server $Server is less than the 50Gb threshold specified\n","Warning, current available space of $avail on disk $Loc of server $Server is less than 50Gb.\n\n\n");
-    }
-}
-close(DFL);
-close(DFLOG);
-
-
-# who
-open(WHOLOG,">$WhoLog") || die "Can't open who log file\n";
-open(WHO, "rsh $Server who -u |");
-while (<WHO>) {
-    print WHOLOG $_;
+if ($OS eq "sunos") {
+	print "Creating df file\n";
+	&add_info($Dfo,"\n\tMount Table\n\n");
+	`cp /etc/fstab $Dfo`;
+	&add_info($Dfo,"\n\tDisk Free Report\n\n");
+	`df -a > $Dfo`;
+	$PScom="ps -aux"
 }
 
-# ClearCase Version
-open(CCVERLOG,">$CCVerLog") || die "Can't open ClearCase Version Log file\n";
-open(CCVER, "rsh $Server $CT -ver|");
-while (<CCVER>) {
-    print CCVERLOG $_;
+&add_info($Syso,"\n\tAdditional Network Information\n\n");
+open(DR, "/etc/defaultrouter") || die "Can not open /etc/defaultrouter";
+while (<DR>) {
+        chop;
+        ($Defrouter)=$_;
+        &add_info($Syso,"Default Router is\t= $Defrouter\n");
 }
-close(CCVER);
-close(CCVERLOG);
-
-
-# VOB Space
-open(VSLOG,">$VobSpaceLog") || die "Can't open VOB space log\n";
-open(VS, "rsh $Server $CT space -avob |");
-while(<VS>) {
-    if ($_ =~ /^Total/) {
-            @TotalUsageLine = split(" ",);
-            $VOB = @TotalUsageLine[5];
-            $Size = @TotalUsageLine[7];
-            print VSLOG "Current Size for VOB $VOB is $Size\n";
-            $Total = $Total + $Size;
-    }
+close(DR);
+open(RS, "/etc/resolv.conf") || die "Can not open /etc/resolv.conf";
+while (<RS>) {
+        chop;
+        if (/^nameserver/) {
+                ($ns,$nsip)=split(' ',$_);
+                &add_info($Syso,"DNS Server is\t\t= $nsip\n");
+        }
+        if (/^domain/) {
+                ($dm,$domain)=split(' ',$_);
+                &add_info($Syso,"DNS Domain is\t\t= $domain\n");
+        }
 }
-print VSLOG "=======================================\n";
-print VSLOG "Total disk usage for all VOBs is $Total\n";
-print VSLOG "\n";
-close(VS);
-close(VSLOG);
-
-# Gather ClearCase Logs from the server
-
-@Logs = ("vob", "view", "shipping", "vobrpc", "vob_scrubber", "scrubber", "mvfs", "lockmgr", "db", "albd", "admin");
-
-# Process each logs. Ignore the header
-foreach $Elem (@Logs) {
-   print $Elem, "\n";
-   open(LOG, ">${LogDir}/${Elem}.log") || die "Can't open log file ${LogDir}/${Elem}.log\n";
-   if ( "$Elem" =~ /vob_scubber|scrubber|lockmgr/ ) {
-       open(GETLOG, "rsh $Server $CT getlog $Elem |");
-   } else {
-       open(GETLOG, "rsh $Server $CT getlog -since yesterday $Elem |");
-   }
-   while (<GETLOG>) {
-       if ( $_ =~ /^=|^Log Name|^Selection|^-/ ) {
-           print $_;
-           next;
-       } else {
-           print LOG $_;
-       }
-
-   }
-
-   close GETLOG;
-   close LOG;
+close(RS);
+chop($DomainName=`domainname`);
+open(FINDIT,"$PScom|")|| die "Could not run ps\n";
+while(<FINDIT>) {
+	if (/in.named/) {
+		&add_info($Syso,"\nSystem is configured as a DNS server\n");
+	}
+	if (/rpc.pcnfsd/) {
+		&add_info($Syso,"\nSystem is configured as a PC-NFS authentication and print server\n");
+	}
+        if (/ypbind/) {
+                &add_info($Syso,"System is configured as NIS client for domain $DomainName\n");
+                open(FINDIT2,"$PScom|")|| die "Could not run ps\n"; 
+                        while(<FINDIT2>) {     
+                                if (/ypserv/) {
+                                &add_info($Syso,"System is configured as NIS server for domain $domain
+name\n");
+                                }
+                        }
+                close(FINDIT2);
+        chop($NISserver=`/usr/bin/ypwhich`);
+        &add_info($Syso,"Accessing NIS tables from server $NISserver\n\n");
+        &add_info($Syso,"NIS Servers List\n");
+        `/usr/bin/ypcat -t ypservers >> $Syso` ;
+        }
 }
+&add_info($Syso,"\nOutput from ifconfig -a command\n");
+`ifconfig -a >> $Syso`;
+&add_info($Syso,"\nOutput from netstat -rn command\n");
+`netstat -rn >> $Syso`;
+&add_info($Syso,"\n");
+&add_info($Syso,`date`);
 
-# Release license
-system("rsh $Server /opt/rational/clearcase/bin/clearlicense -release");
-
-sub Notify {
-    my($MySentTo,$MySubject,$MyMessage)=@_;
-    %mail = (
-            smtp    => 'smtphost.broadcom.com',
-            to      => $MySentTo,
-            from    => 'ccmonitor@broadcom.com',
-            subject => $MySubject,
-            message => $MyMessage,
-    );
-
-    eval { sendmail(%mail) || die $Mail::Sendmail::error; };
-    $Mail::Sendmail::log;
-
-    if ($@) {
-            print "mail could NOT be sent correctly - $@\n";
-            exit(1);
-    } else {
-            print "mail sent correctly\n";
-            exit(0);
-    }
+sub add_info {
+	local ($file,$line)=@_;
+	open (INFOFILE, ">>$file")|| die "Can not append to file $file";
+	print INFOFILE $line;
+	close(INFOFILE);
 }
-:w sysinfonew.pl
-

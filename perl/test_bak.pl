@@ -7,7 +7,6 @@
 #	&add_info(junk,"Default Router is\t= $Defrouter\n");
 #}
 #close(DR);
-########################################
 #open(RS, "/etc/resolv.conf") || die "Can not open /etc/resolv.conf";
 #while (<RS>) {
 #	if (/^nameserver/) {
@@ -20,7 +19,6 @@
 #	}
 #}
 #close(DR);
-########################################
 #chop($temp=`ps -ef | grep ypbind`);
 #if (/ypbind/,temp) {
 #
@@ -108,7 +106,9 @@
 #} else {
 #   print "you are OK in my book\n";
 #}
-########################################
+
+
+
 #$Me=tran;
 #$Me="$Me Yvette";
 #print "$Me\n";
@@ -217,73 +217,55 @@ $CurItem=0;
 #	$mounted=$_[5];
 #	print "$device mounted as $mounted\n";
 #}
-########################################
-#chop($TODAY=`date '+%m-%d-%Y_%H:%M:%S'`);
-#$DF="df.txt";
-#$DFE=0;
-#if (-e $DF) {
-#	$DFE=1;
-#	print "file exists\n";
-## Save the current DF report into array
-#        open(DFIN,"<$DF") || die "Can not open file $DF\n";
-#	while(<DFIN>) {
-##	        next if /^date|^Disk/;
-##       ($date,$device,$capacity,$used,$available,$per_used,$mounted)=split(' ', $_);
-#        	@RT=split(' ',$_);
-#        	$device=$RT[1];
-#	#	print "device is $device\n";
-#        	$OLDDF{$device}="$_";
-#	#	print "old dev is",$OLDDF{$device},"\n";
-#	}
-#        close(DFIN);
-#        `cp /dev/null $DF`;
-#}
-#open(HEAD,">$DF") || die "Can not open file $DF\n";
-#print HEAD "Disk Usage Kbytes Per Partition\n";
-#print HEAD "date\tdevice\tcapacity\tused\tavailable\tpercent_used\tmounted\n";
-#close(HEAD);
-##
-#open(DFRPT, ">>$DF") || die "Can not append to $DF\n";
-#open(DFIN,"df -k -F ufs|");
-#while(<DFIN>) {
-#        next if /^Filesystem/;
-#	$_=~ s/\//\_/g;
-#        ($device,$capacity,$used,$available,$per_used,$mounted)=split(' ', $_);
-#	$device=~ s/\//\_/g;
-#	$mounted=~ s/\//\_/g;
-#	#print "$device mounted as $mounted\n";
-#	if ($DFE) {
-#		#$NEWDF{$device}=("$TODAY","$device","$capacity","$used","$available","$per_used","$mounted");
-#		$NEWDF{$device}=($TODAY,$device,$capacity,$used,$available,$per_used,$mounted);
-#		print "found $NEWDF{$device}\n";
-#	} else {
-##		print "$TODAY\t$device\t$capacity\t$used\t$available\t$per_used\t$mounted\n";
-#		print DFRPT "$TODAY\t$device\t$capacity\t$used\t$available\t$per_used\t$mounted\n";		
-#	}
-#}
-#close(DFIN);
-#if ($DFE == 1) {
-#	@UNIQ=keys % {{%OLDDF,%NEWDF}};
-#	foreach $I (@UNIQ) {
-##       	 $TXT1=join(\t,"$OLDDF{$I}");
-##       	 $TXT2=join(\t,"$NEWDF{$I}");
-## 	 print DFRPT "$TXT1\n$TXT2\n";	
-#	print DFRPT "$OLDDF{$I}\n";
-#	print DFRPT "$NEWDF{$I}\n";
-#	}
-#}
-#close (DFRPT);
-#################################################
-$Logs_Loc=/tools/admin/logs/diskuse;
-$Year=2000;
-$Day=31;
-for ( $i=01; $i<=12; $i++) {
-	$Date="$Year$i$Day";
-	$Dir="Logs_loc/$Date";
-	if ( !-e "$Dir" ) {
-		print "$Dir is not there";
-		
-
+chop($TODAY=`date '+%m-%d-%Y_%H:%M:%S'`);
+$DF="df.txt";
+$DFE=0;
+if (-e $DF) {
+	$DFE=1;
+	print "file exists\n";
+# Save the current DF report into array
+        open(DFIN,"<$DF") || die "Can not open file $DF\n";
+	while(<DFIN>) {
+	        next if /^date|^Disk/;
+#       ($date,$device,$capacity,$used,$available,$per_used,$mounted)=split(' ', $_);
+        	@RT=split(' ',$_);
+        	$device=$RT[1];
+		print "device is $device\n";
+        	$OLDDF{$device}="$_";
+		print "old dev is",$OLDDF{$device},"\n";
 	}
-	#print "$Date\n";
+        close(DFIN);
+        `cp /dev/null $DF`;
 }
+open(HEAD,">$DF") || die "Can not open file $DF\n";
+print HEAD "Disk Usage Kbytes Per Partition\n";
+print HEAD "date\tdevice\tcapacity\tused\tavailable\tpercent_used\tmounted\n";
+close(HEAD);
+#
+open(DFRPT, ">>$DF") || die "Can not append to $DF\n";
+open(DFIN,"df -k -F ufs|");
+while(<DFIN>) {
+        next if /^Filesystem/;
+        ($device,$capacity,$used,$available,$per_used,$mounted)=split(' ', $_);
+	$device=~ s/\//\_/g;
+	$mounted=~ s/\//\_/g;
+	print "$device mounted as $mounted\n";
+	if ($DFE) {
+		$NEWDF{$device}=("$TODAY","$device","$capacity","$used","$available","$per_used","$mounted");
+	} else {
+		print "$TODAY\t$device\t$capacity\t$used\t$available\t$per_used\t$mounted\n";
+		print DFRPT "$TODAY\t$device\t$capacity\t$used\t$available\t$per_used\t$mounted\n";		
+	}
+}
+close(DFIN);
+if ($DFE == 1) {
+	@UNIQ=keys % {{%OLDDF,%NEWDF}};
+	foreach $I (@UNIQ) {
+#       	 $TXT1=join(\t,"$OLDDF{$I}");
+#       	 $TXT2=join(\t,"$NEWDF{$I}");
+# 	 print DFRPT "$TXT1\n$TXT2\n";	
+	print DFRPT "$OLDDF{$I}\n";
+	print DFRPT "$NEWDF{$I}\n";
+	}
+}
+close (DFRPT);

@@ -1,4 +1,10 @@
-#!/usr/local/bin/perl
+#!/tools/perl/5.6.0/SunOS/bin/perl
+
+
+use File::Basename;
+use Mail::Sendmail;
+use Date::Manip;
+
 #&add_info(junk,"\tNetwork Information\n");
 #open(DR, "/etc/defaultrouter") || die "Can not open /etc/defaultrouter";
 #while (<DR>) {
@@ -274,16 +280,113 @@ $CurItem=0;
 #}
 #close (DFRPT);
 #################################################
-$Logs_Loc=/tools/admin/logs/diskuse;
-$Year=2000;
-$Day=31;
-for ( $i=01; $i<=12; $i++) {
-	$Date="$Year$i$Day";
-	$Dir="Logs_loc/$Date";
-	if ( !-e "$Dir" ) {
-		print "$Dir is not there";
-		
+#$Logs_Loc=/tools/admin/logs/diskuse;
+#$Year=2000;
+#$Day=31;
+#for ( $i=01; $i<=12; $i++) {
+#	$Date="$Year$i$Day";
+#	$Dir="Logs_loc/$Date";
+#	if ( !-e "$Dir" ) {
+#		print "$Dir is not there";
+#		
+#
+#	}
+#	#print "$Date\n";
+#}
 
-	}
-	#print "$Date\n";
-}
+#4$job_handle=C_12345;
+#$FAIL_DID = "./fails.txt";
+
+#open(DID, "+< $FAIL_DID") || die "Can't open did file\n";
+#@didlist=<DID>;
+#close(DID);
+#$Matched = grep {/$job_handle/} @didlist;
+#print $Matched;
+
+#chdir("/projects/cctstgloc");
+#open(DFL,"df -k .|");
+#while(<DFL>) {
+#        next if /^Filesystem/;
+#        ($filesystem,$kbytes,$used,$avail,$capacity,$mounted)=split(/ +/);
+#        ($FILERNAME,$volume)=split(/:/, $filesystem);
+#	($leading,$vol,$VOL,@rest)=split("/",$volume);
+#
+#}
+#print "$FILERNAME $VOL\n";
+
+#opendir(DIR, "/ccase/vobstore") or die "Can't open directory /tmpmnt/vobstore: $!";
+#        while (defined ($SUBDIR = readdir DIR) ) {
+#                next if $SUBDIR =~ /^\.\.?$/;
+#                ($DIRNAME,$EXT) = fileparse($SUBDIR,'\..*');
+#                print "/usr/bin/tar cf ${FILERBACKUP}/${DIRNAME}_VBS_${TIMESTAMP}.tar\n";
+#        }
+
+#$SITE=irvine;
+#SWITCH: while ( define $SITE ) {
+#        /test/ {
+#                        $SERVER=ccase-sj1-4;
+#                        $BACKUPDIR="/backups";
+#                        $FILERPATH="/projects/ccstgloc-cabu_ext";
+#                        $FILERBACKUP="${FILERPATH}/backups";
+#                        last SWITCH;
+#                };
+#        /irvine/ {
+#                        $SERVER=ccase-irva-1;
+#                        $BACKUPDIR="/backups";
+#                        $FILERPATH="/projects/ccstgloc-bse";
+#                        $FILERBACKUP="${FILERPATH}/backups";
+#                        last SWITCH;
+#                };
+#        /sjcabu/ {
+#                        $SERVER=ccase-sj1-5;
+#                        $BACKUPDIR="/backups";
+#                        $FILERPATH="/projects/ccstgloc-cabu_ext";
+#                        $FILERBACKUP="${FILERPATH}/backups";
+#                        last SWITCH;
+#                };
+#        /sjbse/ {
+#                        $SERVER=ccase-sj1-51
+#                        $BACKUPDIR="/backups";
+#                        $FILERPATH="/projects/ccstgloc-bse";
+#                        $FILERBACKUP="${FILERPATH}/backups";
+#                        last SWITCH;
+#                };
+#        /richmond/ {
+#                        $SERVER=ccase-rmna-1
+#                        $BACKUPDIR="/backups";
+#                        $FILERPATH="/projects/ccstgloc";
+#                        $FILERBACKUP="${FILERPATH}/backups";
+#                        last SWITCH;
+#                };
+#}
+#
+#
+###print "$FILERBACKUP\n";
+
+##%richmond = ( 
+#     'server' => 'ccase-rmna1',         
+#     'backupdir' => '/backups',         
+#     'filer' => 'fs-rmna-01',         
+#);
+
+#%irvine = ( 
+#     'server' => 'ccase-rmna1',         
+#     'backupdir' => '/backups',         
+#     'filer' => 'fs-rmna-01',         
+#);
+
+#foreach $i (\$irvine,\$richmond) {
+#    print $i;
+#    print "$i{server}\n";
+#}
+
+my $rev="05.1";
+my $primary_release_area="/projects/IT_SCM/tools/perforce/releases";
+my @versions = ('linux24x86', 'linux26amd64', 'ntx86', 'solaris8sparc');
+    mkdir ("${primary_release_area}/r${rev}",0777) if !-e "${primary_release_area}/r${rev}";
+    foreach my $wd (@versions) {
+        print "${primary_release_area}/r${rev}/$wd\n";
+        if (!-e "${primary_release_area}/r${rev}/${wd}") {
+        mkdir ("${primary_release_area}/r${rev}/${wd}",0777);
+        }
+    }
